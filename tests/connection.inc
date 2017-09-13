@@ -1,15 +1,16 @@
 <?php
 
-$database = '*LOCAL';
-$user = 'DB2';
-$password = 'PWD';
-$hostname = 'hotellnx122.torolab.ibm.com';
+$database = "V7R1GOLD"; // YIPS V7R1GOLD;
+$user = 'ADC';
+$password = getenv($user);
+$hostname = 'yips.idevcloud.com';
 $port = 31904;
 $url = 'no url';
-$switch_user = 'DB2TWO';
-$switch_password = 'PWD';
-$chroot_dir = '/QOpenSys/zend7';
+$switch_user = 'TCAIRNS';
+$switch_password = getenv($switch_user);
+$chroot_dir = '';
 $xmlservice_lib = 'XMLSERVICE'; /* allow connect.inc to set xmlservice library $xmlservice_lib for xmlservice.inc */
+$letitroll = getenv('ROLL'); /* run some IBM i V6 on Linux (ADC only) */
 
 $db = $database;
 $username = $user;
@@ -29,7 +30,7 @@ if (strpos("  ".$myos,'400') > 0 || strpos(" ".$myos,'AIX') > 0) {
 }
 // LUW (not PASE) 
 else {
-  if (strpos($_SERVER["PHP_SELF"],"V6") > 0) {
+  if (!$letitroll && strpos($_SERVER["PHP_SELF"],"V6") > 0) {
     die('skip');
   }
 }
