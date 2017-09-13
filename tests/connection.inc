@@ -9,6 +9,7 @@ $url = 'no url';
 $switch_user = 'DB2TWO';
 $switch_password = 'PWD';
 $chroot_dir = '/QOpenSys/zend7';
+$xmlservice_lib = 'XMLSERVICE'; /* allow connect.inc to set xmlservice library $xmlservice_lib for xmlservice.inc */
 
 $db = $database;
 $username = $user;

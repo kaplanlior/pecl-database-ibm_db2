@@ -2638,9 +2638,11 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 				}
 				/* 1.9.7 - IBM i fully close (at least try) */
 				if (!conn_alive) {
+/*
 					if (IBM_DB2_G(i5_log_verbose) > 0) {
 						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Reset persistent connection");
 					}
+ */
 					/* close sets conn_res->flag_pconnect=9 */
 					_php_db2_close_now(conn_res, 1 TSRMLS_CC);
 				}
@@ -2666,6 +2668,11 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 		/* Allocate ENV handles if not present */
 		if ( !conn_res->henv ) {
 			rc = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &(conn_res->henv));
+#ifdef PASE /* IBM i only one env handle, SQL_SUCCESS_WITH_INFO is good */
+			if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+				rc = SQL_SUCCESS;
+			}
+#endif /* PASE */
 			if (rc != SQL_SUCCESS) {
 				_php_db2_check_sql_errors( conn_res->henv, SQL_HANDLE_ENV, rc, 1, NULL, -1, 1 TSRMLS_CC);
 				break;
