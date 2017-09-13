@@ -3349,15 +3349,15 @@ static int _php_db2_close_now( void* handle, int endpconnect TSRMLS_DC)
 			ok = 0;
 		}
 		conn_res->handle_active = 0;
-#ifdef PASE /* db2_pclose - last ditch persistent close, but reuse zend hash */
-		if (endpconnect) {
-			conn_res->hdbc = 0;
-			conn_res->flag_pconnect=9;
-		}
-#endif /* PASE */
 	} else if ( conn_res->flag_pconnect ) {
 		/* Do we need to call FreeStmt or something to close cursors? */
 	}
+#ifdef PASE /* db2_pclose - last ditch persistent close, but reuse zend hash. Do not move this code, someone broke IBM i 1.9.9 (ADC) */
+	if (endpconnect) {
+		conn_res->hdbc = 0;
+		conn_res->flag_pconnect=9;
+	}
+#endif /* PASE */
 	return ok;
 }
 /* }}} */
