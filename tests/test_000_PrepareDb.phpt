@@ -67,7 +67,7 @@ if ($conn) {
     foreach($animals as $row){
        $name = $row[0];
        $picname = $row[1];
-       $picture = dirname(__FILE__) . "/$picname";
+       $picture = $chroot_dir . dirname(__FILE__) . "/$picname";
        db2_bind_param($stmt, 1, "name", DB2_PARAM_IN);
        db2_bind_param($stmt, 2, "picture", DB2_PARAM_FILE, DB2_BINARY);
        $res = db2_execute($stmt);
@@ -276,7 +276,7 @@ if ($conn) {
            $empno = $row[0];
            $photo_format = $row[1];
            $picname = $row[2];
-           $picture = dirname(__FILE__) . "/$picname";
+           $picture = $chroot_dir . dirname(__FILE__) . "/$picname";
            db2_bind_param($stmt, 1, "empno", DB2_PARAM_IN);
            db2_bind_param($stmt, 2, "photo_format", DB2_PARAM_IN);
            $res = db2_bind_param($stmt, 3, "picture", DB2_PARAM_FILE, DB2_BINARY);
@@ -499,7 +499,7 @@ if ($conn) {
            $empno = $row[0];
            $resume_format = $row[1];
            $resumename = $row[2];
-           $resume = dirname(__FILE__) . "/$resumename";
+           $resume = $chroot_dir . dirname(__FILE__) . "/$resumename";
            db2_bind_param($stmt, 1, "empno", DB2_PARAM_IN);
            db2_bind_param($stmt, 2, "resume_format", DB2_PARAM_IN);
            db2_bind_param($stmt, 3, "resume", DB2_PARAM_FILE, DB2_BINARY);

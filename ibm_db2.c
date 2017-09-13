@@ -67,30 +67,30 @@ ZEND_DECLARE_MODULE_GLOBALS(ibm_db2)
 
 #if PHP_MAJOR_VERSION >=7
 #define ZEND_FETCH_RESOURCE_NEW(res, stmt_type, stmt, stmt_id, resource_type_name, le_stmt)\
-    res = (stmt_type) zend_fetch_resource(Z_RES_P(*stmt),resource_type_name,le_stmt);                                                             \
-    if(res == NULL)\
-    RETURN_FALSE;
+res = (stmt_type) zend_fetch_resource(Z_RES_P(*stmt),resource_type_name,le_stmt);\
+if(res == NULL)\
+RETURN_FALSE;
 #else
-#define ZEND_FETCH_RESOURCE_NEW(res, stmt_type, stmt, stmt_id, resource_type_name, le_stmt)  \
-        ZEND_FETCH_RESOURCE(res, stmt_type, stmt, stmt_id, resource_type_name, le_stmt)
+#define ZEND_FETCH_RESOURCE_NEW(res, stmt_type, stmt, stmt_id, resource_type_name, le_stmt)\
+ZEND_FETCH_RESOURCE(res, stmt_type, stmt, stmt_id, resource_type_name, le_stmt)
 #endif
 
 #if PHP_MAJOR_VERSION >= 7
 #define ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct) \
-        RETURN_RES(zend_register_resource( stmt_res, le_stmt_struct))
+RETURN_RES(zend_register_resource( stmt_res, le_stmt_struct))
 #else
 #define ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct) \
-                ZEND_REGISTER_RESOURCE(return_value, stmt_res, le_stmt_struct)
+	ZEND_REGISTER_RESOURCE(return_value, stmt_res, le_stmt_struct)
 #endif
 
 #if PHP_MAJOR_VERSION >= 7
-#define ZEND_FETCH_RESOURCE_2(rsrc, rsrc_type, passed_id, default_id, resource_type_name, resource_type1, resource_type2)                \
-        rsrc = (rsrc_type) zend_fetch_resource2(Z_RES_P(*passed_id),resource_type_name,resource_type1,resource_type2);                                                             \
-    if(rsrc == NULL)\
-    RETURN_FALSE;
+#define ZEND_FETCH_RESOURCE_2(rsrc, rsrc_type, passed_id, default_id, resource_type_name, resource_type1, resource_type2)\
+rsrc = (rsrc_type) zend_fetch_resource2(Z_RES_P(*passed_id),resource_type_name,resource_type1,resource_type2); \
+if(rsrc == NULL)\
+RETURN_FALSE;
 #else
-#define ZEND_FETCH_RESOURCE_2(rsrc, rsrc_type, passed_id, default_id, resource_type_name, resource_type1, resource_type2)                 \
-        ZEND_FETCH_RESOURCE2(rsrc, rsrc_type, passed_id, default_id, resource_type_name, resource_type1, resource_type2);
+#define ZEND_FETCH_RESOURCE_2(rsrc, rsrc_type, passed_id, default_id, resource_type_name, resource_type1, resource_type2)\
+ZEND_FETCH_RESOURCE2(rsrc, rsrc_type, passed_id, default_id, resource_type_name, resource_type1, resource_type2);
 #endif
 
 #if PHP_MAJOR_VERSION >= 7
@@ -106,7 +106,7 @@ ZEND_DECLARE_MODULE_GLOBALS(ibm_db2)
 #endif
 
 #if PHP_MAJOR_VERSION >= 7
-#define ZEND_RETURN_STRING(str,val)\
+#define ZEND_RETURN_STRING(str,val) \
 RETVAL_STRING(str); \
 efree(str);\
 return
@@ -124,12 +124,6 @@ return
 #define ZEND_ZVAL_PTR_DTOR(data) zval_ptr_dtor(data)
 #else
 #define ZEND_ZVAL_PTR_DTOR(data) zval_ptr_dtor(&(data))
-#endif
-
-#if PHP_MAJOR_VERSION >= 7 
-#define ACTIVE_SYMBOL_TABLE symbol_table 
-#else
-#define ACTIVE_SYMBOL_TABLE active_symbol_table 
 #endif
 
 #if PHP_MAJOR_VERSION >= 7 
@@ -185,41 +179,9 @@ return
 #define ADD_INDEX_STRINGL(val1, val2, val3, val4, val5) add_index_stringl(val1, val2, val3, val4, val5) 
 #endif
 
-#if PHP_MAJOR_VERSION >= 7
-#define INIT_Z_STRVAL_PP(data, fun, length)\
-if(ZEND_Z_STRLEN_PP(data)) \
-Z_STR_P(*data) = zend_string_init(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data), 0);\
-else \
-{\
-Z_STR_P(*data) = zend_string_alloc(length,0);\
-memset(Z_STR_P(*data), 0, length);\
-Z_STR_P(*data)->len = length;\
-Z_STR_P(*data)->val[0] = '\0';\
-}
-#else
-#define INIT_Z_STRVAL_PP(data,fun,len) \
-Z_STRVAL_PP(data) = fun(Z_STRVAL_PP(data), len)
+#if PHP_MAJOR_VERSION < 7 
+#define zend_array HashTable
 #endif
-
-#define ZEND_Z_SET_SYMBOL(symtable, name, var)										\
-	{																				\
-		char *_name = (name);														\
-																					\
-		ZEND_SET_Z_SYMBOL_WITH_LENGTH(symtable, _name, strlen(_name), var, 1, 0);	\
-	}
-
-#define ZEND_SET_Z_SYMBOL_WITH_LENGTH(symtable, name, name_length, var, _refcount, _is_ref)				\
-	{																									\
-		zval *orig_var;																				\
-																										\
-		if (((orig_var = zend_hash_str_find_ind(symtable, (name), (name_length)))!=NULL)){	\
-			zval_dtor(orig_var);																		\
-			*orig_var = *(var);																		\
-			efree(var);																				\
-		} else {																						\
-			zend_hash_str_update(symtable, (name), (name_length), (var));			\
-		}																								\
-	}
 
 /* True global resources - no need for thread safety here */
 static int le_conn_struct, le_stmt_struct, le_pconn_struct;
@@ -238,6 +200,10 @@ static int is_ios, is_zos;		/* 1 == TRUE; 0 == FALSE; */
 static int is_i5_server_mode;		/* orig  - 1 == TRUE; 0 == FALSE; (IBM i use QSQSRVR proxy for DB2) */
 static int is_i5_override_ccsid;	/* 1.9.7 - 1 == TRUE; 0 == FALSE; (IBM i force CCSID (DBCS customer UTF-8 issue)); */
 static int is_i5_null_in_len;		/* 1.9.7 - 1 == TRUE; 0 == FALSE; (IBM i lobs come back +1 (bug)); */
+#endif /* PASE */
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+#define DB2_I5_MAX_HANDLES 33000
+static SQLHANDLE i5_handle_refcount[DB2_I5_MAX_HANDLES];
 #endif /* PASE */
 
 /* Defines a linked list structure for error messages */
@@ -494,47 +460,141 @@ PHP_INI_END()
 #ifdef PASEDEBUG /* IBM i - debug to error log ... _php_db2_errorlog("inlen=%d",tmp_length) */
 static void _php_db2_errorlog(const char * format, ...)
 {
-    char bigbuff[4096];
-    char * p = (char *) &bigbuff;
-    va_list args;
-    va_start(args, format);
-    vsprintf(p, format, args);
-    va_end(args);
-    php_error_docref(NULL TSRMLS_CC, E_WARNING, p);
+	char bigbuff[4096];
+	char * p = (char *) &bigbuff;
+	va_list args;
+	va_start(args, format);
+	vsprintf(p, format, args);
+	va_end(args);
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, p);
 }
 #endif /* PASE */
 
+/*
+ * @#$$#! stuff for php 7
+ */
+
+/* {{{ static int _php_db2_hash_find_ind(const char * varname, int varlen, zval ***bind_data)
+	*/
+static int _php_db2_hash_find_ind(char * varname, int varlen, zval **temp, zval ***bind_data, zend_array ** symbol_table_used)
+{
+	int rc = FAILURE;
+	zend_array * symbol_table_local; /* php 5.3+, php 7+ */
+
+	/* Fetch data from symbol table (local scope) */
+#if PHP_MAJOR_VERSION >= 7
+    symbol_table_local = zend_rebuild_symbol_table();
+	*temp =  zend_hash_str_find_ind(symbol_table_local, varname, varlen );
+	if (*temp != NULL) {
+		*bind_data = temp;
+		*symbol_table_used = symbol_table_local;
+		rc = SUCCESS;
+	}
+#else
+	rc = zend_hash_find(EG(active_symbol_table), varname, varlen+1, (void **) bind_data );
+	if (rc == FAILURE) {
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 3
+		/* ADC - PHP changed general behavior 5.3+ */
+		if (!EG(active_symbol_table)) {
+    		zend_rebuild_symbol_table(TSRMLS_C); /* rebuild EG(active_symbol_table) */
+		}
+#endif
+		rc = zend_hash_find(EG(active_symbol_table), varname, varlen+1, (void **) bind_data );
+		if (rc != FAILURE) {
+			*symbol_table_used = EG(active_symbol_table);
+			*temp = **bind_data;
+		}
+	} else {
+		*symbol_table_used = EG(active_symbol_table);
+		*temp = **bind_data;
+	}
+#endif
+	/* Fetch data from symbol table (global scope ... mmm??) */
+	if (rc == FAILURE) {
+#if PHP_MAJOR_VERSION >= 7
+		*temp =  zend_hash_str_find_ind(&EG(symbol_table), varname, varlen );
+		if (*temp != NULL) {
+			*bind_data = temp;
+			*symbol_table_used = &EG(symbol_table);
+			rc = SUCCESS;
+		}
+#else
+		rc = zend_hash_find(&EG(symbol_table), varname, varlen+1, (void **) bind_data );
+		if (rc != FAILURE) {
+			*symbol_table_used = &EG(symbol_table);
+			*temp = **bind_data;
+		}
+#endif
+	}
+	return rc;
+}
+/* }}} */
+
+/* {{{ static int _php_db2_hash_find_ind(const char * varname, int varlen, zval ***bind_data)
+	*/
+static void _php_db2_set_symbol(char * varname, zval *var)
+{
+	zval **bind_data;			/* Data value from symbol table */
+    zval *temp = NULL;
+	zend_array * symbol_table_used; /* php 5.3+, php 7+ */
+	if (_php_db2_hash_find_ind(varname, strlen(varname), &temp, &bind_data, &symbol_table_used) != FAILURE ) {
+#if PHP_MAJOR_VERSION >= 7
+		zval *orig_var = temp;
+		if (orig_var != NULL) {
+			zval_dtor(orig_var);
+			*orig_var = *var;
+			efree(var);
+		} else {
+			zend_hash_str_update(symbol_table_used, varname, strlen(varname), var);
+		}
+#else
+		ZEND_SET_SYMBOL(symbol_table_used, varname, var);
+#endif
+	}
+}
+/* }}} */
+
+
+
+
 #ifdef PASE /* IBM i meta change ""->NULL */
+#if PHP_MAJOR_VERSION >= 7
+static void _php_db2_meta_helper(SQLCHAR **qualifier, size_t *qualifier_len,
+				 SQLCHAR **owner,     size_t *owner_len,
+				 SQLCHAR **table,     size_t *table_len,
+				 SQLCHAR **column,    size_t *column_len)
+#else
 static void _php_db2_meta_helper(SQLCHAR **qualifier, int *qualifier_len,
 				 SQLCHAR **owner,     int *owner_len,
 				 SQLCHAR **table,     int *table_len,
 				 SQLCHAR **column,    int *column_len)
+#endif
 {
-  if (qualifier) {
-    	*qualifier=NULL;
-    	*qualifier_len=0;
-  }
-  if (owner) {
-    if (**owner=='\0') {
-      *owner=NULL;
-      *owner_len=0;
-    }
-    else *owner_len=SQL_NTS;
-  }
-  if (table) {
-    if (**table=='\0') {
-      *table=NULL;
-      *table_len=0;
-    }
-    else *table_len=SQL_NTS;
-  }
-  if (column) {
-    if (**column=='\0') {
-      *column=NULL;
-      *column_len=0;
-    }
-    else *column_len=SQL_NTS;
-  }
+	if (qualifier) {
+		*qualifier=NULL;
+		*qualifier_len=0;
+	}
+	if (owner) {
+		if (**owner=='\0') {
+			*owner=NULL;
+			*owner_len=0;
+		}
+		else *owner_len=SQL_NTS;
+	}
+	if (table) {
+		if (**table=='\0') {
+			*table=NULL;
+			*table_len=0;
+		}
+		else *table_len=SQL_NTS;
+	}
+	if (column) {
+		if (**column=='\0') {
+			*column=NULL;
+			*column_len=0;
+		}
+		else *column_len=SQL_NTS;
+	}
 }
 #endif /* PASE */
 
@@ -623,6 +683,9 @@ static void php_ibm_db2_init_globals(zend_ibm_db2_globals *ibm_db2_globals)
 	ibm_db2_globals->i5_servermode_subsystem = NULL; /* 1.9.7 - IBM i consultant request switch subsystem QSQSRVR job (customer workload issues) */
 	ibm_db2_globals->i5_guard_profile = -42;	/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
 #endif /* PASE */
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+	memset(i5_handle_refcount,0,sizeof(i5_handle_refcount));
+#endif /* PASE */
 }
 /* }}} */
 
@@ -660,7 +723,9 @@ static void _php_db2_free_conn_struct(ZEND_RESOURCE *rsrc TSRMLS_DC)
 		}
 		rc = SQLDisconnect((SQLHDBC)handle->hdbc);
 		rc = SQLFreeHandle(SQL_HANDLE_DBC, handle->hdbc);
+#ifndef PASE /* IBM i too noisy */
 		rc = SQLFreeHandle(SQL_HANDLE_ENV, handle->henv);
+#endif /* PASE */
 	}
 	if ( handle != NULL ) {
 		if ( handle->flag_pconnect ) {
@@ -799,15 +864,37 @@ static stmt_handle *_db2_new_stmt_struct(conn_handle* conn_res)
 }
 /* }}} */
 
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+/* {{{ static _php_db2_incr_stmt_struct */
+static void _php_db2_incr_stmt_struct(stmt_handle *handle)
+{
+	i5_handle_refcount[handle->hstmt]++;
+}
+/* }}} */
+/* {{{ static _php_db2_incr_stmt_struct */
+static int _php_db2_decr_stmt_struct(stmt_handle *handle)
+{
+	if (i5_handle_refcount[handle->hstmt] > 0) {
+		i5_handle_refcount[handle->hstmt]--;
+	}
+	return i5_handle_refcount[handle->hstmt];
+}
+/* }}} */
+#endif /* PASE */
+
 /* {{{ static _php_db2_free_stmt_struct */
 static void _php_db2_free_stmt_struct(ZEND_RESOURCE *rsrc TSRMLS_DC)
 {
 	int rc;
 
 	stmt_handle *handle = (stmt_handle*) rsrc->ptr;
-
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+	if (!_php_db2_decr_stmt_struct(handle)) {
+		rc = SQLFreeHandle( SQL_HANDLE_STMT, handle->hstmt);
+	}
+#else
 	rc = SQLFreeHandle( SQL_HANDLE_STMT, handle->hstmt);
-
+#endif /* PASE */
 	if ( handle ) {
 		_php_db2_free_result_struct(handle);
 		efree(handle);
@@ -1215,13 +1302,13 @@ static void _php_db2_ibmi_cmd_helper(conn_handle *conn_res TSRMLS_DC, char **i5_
 		efree(*i5_pending_cmd);
 		*i5_pending_cmd=NULL;
 		return;
-    }
+	}
 	memset(query_string,0,sizeof(query));
 	strcpy(query_string, "CALL QSYS2.QCMDEXC('");
-    strcat(query_string, stmt_string);
-    strcat(query_string, "',");
-    strcat(query_string, len_string);
-    strcat(query_string, ")");
+	strcat(query_string, stmt_string);
+	strcat(query_string, "',");
+	strcat(query_string, len_string);
+	strcat(query_string, ")");
 
 	/* alloc handle */
 	stmt_res = _db2_new_stmt_struct(conn_res);
@@ -1601,16 +1688,18 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 		}
 	/* 1.9.7 - LUW to IBM i need isolation mode *NONE (required non journal CRTLIB) */
 	} else if (!STRCASECMP(opt_key, "i5_commit")) {
-          /* i5_commit - SQL_ATTR_TXN_ISOLATION
-             The SQL_ATTR_TXN_ISOLATION attribute should be set before the SQLConnect(). If the value is changed after the connection has been established, and the connection is to a remote data source, the change does not take effect until the next successful SQLConnect() for the connection handle
-             DB2_I5_TXN_NO_COMMIT - Commitment control is not used.
-             DB2_I5_TXN_READ_UNCOMMITTED - Dirty reads, nonrepeatable reads, and phantoms are possible. 
-             DB2_I5_TXN_READ_COMMITTED - Dirty reads are not possible. Nonrepeatable reads, and phantoms are possible. 
-             DB2_I5_TXN_REPEATABLE_READ - Dirty reads and nonrepeatable reads are not possible. Phantoms are possible. 
-             DB2_I5_TXN_SERIALIZABLE - Transactions are serializable. Dirty reads, non-repeatable reads, and phantoms are not possible
-             */
-	    pvParam = option_num;
-	    switch (option_num) {
+		/* i5_commit - SQL_ATTR_TXN_ISOLATION
+	 	 * The SQL_ATTR_TXN_ISOLATION attribute should be set before the SQLConnect(). 
+		 * If the value is changed after the connection has been established, and the connection is to a remote data source, 
+		 * the change does not take effect until the next successful SQLConnect() for the connection handle
+	 	 * DB2_I5_TXN_NO_COMMIT - Commitment control is not used.
+	 	 * DB2_I5_TXN_READ_UNCOMMITTED - Dirty reads, nonrepeatable reads, and phantoms are possible. 
+	 	 * DB2_I5_TXN_READ_COMMITTED - Dirty reads are not possible. Nonrepeatable reads, and phantoms are possible. 
+	 	 * DB2_I5_TXN_REPEATABLE_READ - Dirty reads and nonrepeatable reads are not possible. Phantoms are possible. 
+	 	 * DB2_I5_TXN_SERIALIZABLE - Transactions are serializable. Dirty reads, non-repeatable reads, and phantoms are not possible
+	 	 */
+	 	pvParam = option_num;
+		switch (option_num) {
 			case DB2_I5_TXN_READ_UNCOMMITTED:
 			case DB2_I5_TXN_READ_COMMITTED:
 			case DB2_I5_TXN_REPEATABLE_READ:
@@ -1624,12 +1713,16 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_commit (DB2_I5_TXN_NO_COMMIT, DB2_I5_TXN_READ_UNCOMMITTED, DB2_I5_TXN_READ_COMMITTED, DB2_I5_TXN_REPEATABLE_READ, DB2_I5_TXN_SERIALIZABLE)");
 				break;
-	    }
+		}
 	/* 1.9.7 - IBM i + LUW 10.5 system naming on (*libl)/file.mbr */
 	} else if (!STRCASECMP(opt_key, "i5_naming")) { /* 1.9.7 - IBM i + LUW DB2 Connect 10.5 system naming (customer *LIBL issues) */
 		/* i5_naming - SQL_ATTR_DBC_SYS_NAMING
-		 * DB2_I5_NAMING_ON value turns on DB2 UDB CLI iSeries system naming mode. Files are qualified using the slash (/) delimiter. Unqualified files are resolved using the library list for the job..
-		 * DB2_I5_NAMING_OFF value turns off DB2 UDB CLI default naming mode, which is SQL naming. Files are qualified using the period (.) delimiter. Unqualified files are resolved using either the default library or the current user ID.
+		 * DB2_I5_NAMING_ON value turns on DB2 UDB CLI iSeries system naming mode. 
+		 *     Files are qualified using the slash (/) delimiter. 
+		 *     Unqualified files are resolved using the library list for the job..
+		 * DB2_I5_NAMING_OFF value turns off DB2 UDB CLI default naming mode, which is SQL naming. 
+		 *     Files are qualified using the period (.) delimiter. 
+		 *     Unqualified files are resolved using either the default library or the current user ID.
 		 */
 		pvParam = option_num;
 		switch (option_num) {
@@ -1688,19 +1781,19 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
     	}
 	/* 1.9.7 - LUW to IBM i attributes defined DB2 10.5 */
 	} else if (!STRCASECMP(opt_key, "i5_date_fmt")) {
-          /* i5_date_fmt - SQL_ATTR_DATE_FMT
-             DB2_I5_FMT_ISO - The International Organization for Standardization (ISO) date format yyyy-mm-dd is used. This is the default. 
-             DB2_I5_FMT_USA - The United States date format mm/dd/yyyy is used. 
-             DB2_I5_FMT_EUR - The European date format dd.mm.yyyy is used. 
-             DB2_I5_FMT_JIS - The Japanese Industrial Standard date format yyyy-mm-dd is used. 
-             DB2_I5_FMT_MDY - The date format mm/dd/yyyy is used. 
-             DB2_I5_FMT_DMY - The date format dd/mm/yyyy is used. 
-             DB2_I5_FMT_YMD - The date format yy/mm/dd is used. 
-             DB2_I5_FMT_JUL - The Julian date format yy/ddd is used. 
-             DB2_I5_FMT_JOB - The job default is used.
-             */
-	    pvParam = option_num;
-	    switch (option_num) {
+		/* i5_date_fmt - SQL_ATTR_DATE_FMT
+ 		 * DB2_I5_FMT_ISO - The International Organization for Standardization (ISO) date format yyyy-mm-dd is used. This is the default. 
+ 		 * DB2_I5_FMT_USA - The United States date format mm/dd/yyyy is used. 
+ 		 * DB2_I5_FMT_EUR - The European date format dd.mm.yyyy is used. 
+ 		 * DB2_I5_FMT_JIS - The Japanese Industrial Standard date format yyyy-mm-dd is used. 
+ 		 * DB2_I5_FMT_MDY - The date format mm/dd/yyyy is used. 
+ 		 * DB2_I5_FMT_DMY - The date format dd/mm/yyyy is used. 
+ 		 * DB2_I5_FMT_YMD - The date format yy/mm/dd is used. 
+ 		 * DB2_I5_FMT_JUL - The Julian date format yy/ddd is used. 
+ 		 * DB2_I5_FMT_JOB - The job default is used.
+ 		 */
+		pvParam = option_num;
+		switch (option_num) {
 			case DB2_I5_FMT_ISO:
 			case DB2_I5_FMT_USA:
 			case DB2_I5_FMT_EUR:
@@ -1719,16 +1812,16 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_date_fmt DB2_I5_FMT_ISO, DB2_I5_FMT_USA, DB2_I5_FMT_EUR, DB2_I5_FMT_JIS, DB2_I5_FMT_MDY, DB2_I5_FMT_DMY, DB2_I5_FMT_YMD, DB2_I5_FMT_JUL, DB2_I5_FMT_JOB");
 		}
 	} else if (!STRCASECMP(opt_key, "i5_date_sep")) {
-          /* i5_date_sep - SQL_ATTR_DATE_SEP
-             DB2_I5_SEP_SLASH - A slash ( / ) is used as the date separator. This is the default. 
-             DB2_I5_SEP_DASH - A dash ( - ) is used as the date separator. 
-             DB2_I5_SEP_PERIOD - A period ( . ) is used as the date separator. 
-             DB2_I5_SEP_COMMA - A comma ( , ) is used as the date separator. 
-             DB2_I5_SEP_BLANK - A blank is used as the date separator. 
-             DB2_I5_SEP_JOB - The job default is used
-             */
-	    pvParam = option_num;
-	    switch (option_num) {
+		/* i5_date_sep - SQL_ATTR_DATE_SEP
+		 * DB2_I5_SEP_SLASH - A slash ( / ) is used as the date separator. This is the default. 
+		 * DB2_I5_SEP_DASH - A dash ( - ) is used as the date separator. 
+		 * DB2_I5_SEP_PERIOD - A period ( . ) is used as the date separator. 
+		 * DB2_I5_SEP_COMMA - A comma ( , ) is used as the date separator. 
+		 * DB2_I5_SEP_BLANK - A blank is used as the date separator. 
+		 * DB2_I5_SEP_JOB - The job default is used
+		 */
+		pvParam = option_num;
+		switch (option_num) {
 			case DB2_I5_SEP_SLASH:
 			case DB2_I5_SEP_DASH:
 			case DB2_I5_SEP_PERIOD:
@@ -1742,17 +1835,17 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 				break;
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_date_sep (DB2_I5_SEP_SLASH, DB2_I5_SEP_DASH, DB2_I5_SEP_PERIOD, DB2_I5_SEP_COMMA, DB2_I5_SEP_BLANK, DB2_I5_SEP_JOB)");
-	    }
+		}
 	} else if (!STRCASECMP(opt_key, "i5_time_fmt")) {
-          /* i5_time_fmt - SQL_ATTR_TIME_FMT
-             DB2_I5_FMT_ISO - The International Organization for Standardization (ISO) time format hh.mm.ss is used. This is the default. 
-             DB2_I5_FMT_USA - The United States time format hh:mmxx is used, where xx is AM or PM. 
-             DB2_I5_FMT_EUR - The European time format hh.mm.ss is used. 
-             DB2_I5_FMT_JIS - The Japanese Industrial Standard time format hh:mm:ss is used. 
-             DB2_I5_FMT_HMS - The hh:mm:ss format is used.
-             */ 
-	    pvParam = option_num;
-	    switch (option_num) {	
+		/* i5_time_fmt - SQL_ATTR_TIME_FMT
+		 * DB2_I5_FMT_ISO - The International Organization for Standardization (ISO) time format hh.mm.ss is used. This is the default. 
+		 * DB2_I5_FMT_USA - The United States time format hh:mmxx is used, where xx is AM or PM. 
+		 * DB2_I5_FMT_EUR - The European time format hh.mm.ss is used. 
+		 * DB2_I5_FMT_JIS - The Japanese Industrial Standard time format hh:mm:ss is used. 
+		 * DB2_I5_FMT_HMS - The hh:mm:ss format is used.
+		 */ 
+		pvParam = option_num;
+		switch (option_num) {	
 			case DB2_I5_FMT_ISO:
 			case DB2_I5_FMT_USA:
 			case DB2_I5_FMT_EUR:
@@ -1765,17 +1858,17 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 				break;
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_time_fmt (DB2_I5_FMT_ISO, DB2_I5_FMT_USA, DB2_I5_FMT_EUR, DB2_I5_FMT_JIS, DB2_I5_FMT_HMS)");
-	    }
+		}
 	} else if (!STRCASECMP(opt_key, "i5_time_sep")) {
-          /* i5_time_sep - SQL_ATTR_TIME_SEP
-             DB2_I5_SEP_COLON - A colon ( : ) is used as the time separator. This is the default. 
-             DB2_I5_SEP_PERIOD - A period ( . ) is used as the time separator. 
-             DB2_I5_SEP_COMMA - A comma ( , ) is used as the time separator. 
-             DB2_I5_SEP_BLANK - A blank is used as the time separator. 
-             DB2_I5_SEP_JOB - The job default is used.
-             */
-	    pvParam = option_num;
-	    switch (option_num) {
+		/* i5_time_sep - SQL_ATTR_TIME_SEP
+		 * DB2_I5_SEP_COLON - A colon ( : ) is used as the time separator. This is the default. 
+		 * DB2_I5_SEP_PERIOD - A period ( . ) is used as the time separator. 
+		 * DB2_I5_SEP_COMMA - A comma ( , ) is used as the time separator. 
+		 * DB2_I5_SEP_BLANK - A blank is used as the time separator. 
+		 * DB2_I5_SEP_JOB - The job default is used.
+		 */
+		pvParam = option_num;
+		switch (option_num) {
 			case DB2_I5_SEP_COLON:
 			case DB2_I5_SEP_PERIOD:
 			case DB2_I5_SEP_COMMA:
@@ -1790,13 +1883,13 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 			    php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_time_sep (DB2_I5_SEP_COLON, DB2_I5_SEP_PERIOD, DB2_I5_SEP_COMMA, DB2_I5_SEP_BLANK, DB2_I5_SEP_JOB)");
 		}
 	} else if (!STRCASECMP(opt_key, "i5_decimal_sep")) {
-          /* i5_decimal_sep - SQL_ATTR_DECIMAL_SEP
-             DB2_I5_SEP_PERIOD - A period ( . ) is used as the decimal separator. This is the default. 
-             DB2_I5_SEP_COMMA - A comma ( , ) is used as the date separator. 
-             DB2_I5_SEP_JOB - The job default is used.
-             */
-	    pvParam = option_num;
-	    switch (option_num) {
+		/* i5_decimal_sep - SQL_ATTR_DECIMAL_SEP
+		 * DB2_I5_SEP_PERIOD - A period ( . ) is used as the decimal separator. This is the default. 
+		 * DB2_I5_SEP_COMMA - A comma ( , ) is used as the date separator. 
+		 * DB2_I5_SEP_JOB - The job default is used.
+		 */
+		pvParam = option_num;
+		switch (option_num) {
 			case DB2_I5_SEP_PERIOD:
 			case DB2_I5_SEP_COMMA:
 			case DB2_I5_SEP_JOB:
@@ -1807,34 +1900,35 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 			    break;
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_decimal_sep (DB2_I5_SEP_PERIOD, DB2_I5_SEP_COMMA, DB2_I5_SEP_JOB)");
-	    }
+		}
 #ifdef PASE  /* i5/OS new set options */
 	} else if (!STRCASECMP(opt_key, "i5_lib")) {
-          /* i5_lib - SQL_ATTR_DBC_DEFAULT_LIB
-             A character value that indicates the default library that will be used for resolving unqualified file references. This is not valid if the connection is using system naming mode.
-             */
-	    char * lib = (char *)option_str;
-	    rc = SQLSetConnectAttr((SQLHDBC)((conn_handle*)handle)->hdbc, SQL_ATTR_DBC_DEFAULT_LIB, (SQLPOINTER)lib, SQL_NTS);
+		/* i5_lib - SQL_ATTR_DBC_DEFAULT_LIB
+		 * A character value that indicates the default library that will be used for resolving unqualified file references. 
+		 * This is not valid if the connection is using system naming mode.
+		 */
+		char * lib = (char *)option_str;
+		rc = SQLSetConnectAttr((SQLHDBC)((conn_handle*)handle)->hdbc, SQL_ATTR_DBC_DEFAULT_LIB, (SQLPOINTER)lib, SQL_NTS);
 		if ( rc == SQL_ERROR ) {
 			_php_db2_check_sql_errors((SQLHSTMT)((conn_handle*)handle)->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 		}
 	} else if (!STRCASECMP(opt_key, "i5_job_sort")) {
 		/* i5_job_sort - SQL_ATTR_CONN_SORT_SEQUENCE
-		DB2_I5_JOB_SORT_ON value turns on DB2 UDB CLI job sort mode. 
-		DB2_I5_JOB_SORT_OFF value turns off DB2 UDB CLI job sortmode. 
-		*/
-	    pvParam = option_num;
+		 * DB2_I5_JOB_SORT_ON value turns on DB2 UDB CLI job sort mode. 
+		 * DB2_I5_JOB_SORT_OFF value turns off DB2 UDB CLI job sortmode. 
+		 */
+		pvParam = option_num;
 		rc = SQLSetConnectAttr((SQLHDBC)((conn_handle*)handle)->hdbc, SQL_ATTR_CONN_SORT_SEQUENCE, (SQLPOINTER)pvParam, SQL_IS_INTEGER);
 		if ( rc == SQL_ERROR ) {
 			_php_db2_check_sql_errors((SQLHSTMT)((conn_handle*)handle)->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 		}
 	} else if (!STRCASECMP(opt_key, "i5_dbcs_alloc")) {
 		/*
-		DB2_I5_DBCS_ALLOC_ON value turns on DB2 6X allocation scheme for DBCS translation column size growth.
-		DB2_I5_DBCS_ALLOC_OFF value turns off DB2 6X allocation scheme for DBCS translation column size growth.
-		*/
-	    pvParam = option_num;
-	    switch (option_num) {
+		 * DB2_I5_DBCS_ALLOC_ON value turns on DB2 6X allocation scheme for DBCS translation column size growth.
+		 * DB2_I5_DBCS_ALLOC_OFF value turns off DB2 6X allocation scheme for DBCS translation column size growth.
+		 */
+		pvParam = option_num;
+		switch (option_num) {
 			case DB2_I5_DBCS_ALLOC_ON:
 				/* override i5_dbcs_alloc in php.ini */
 				((conn_handle*)handle)->c_i5_dbcs_alloc = 1;
@@ -1845,14 +1939,19 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 				break;
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_dbcs_alloc (DB2_I5_DBCS_ALLOC_ON, DB2_I5_DBCS_ALLOC_OFF)");
-	    }
+		}
 	} else if (!STRCASECMP(opt_key, "i5_query_optimize")) {
-          /* i5_query_optimize - SQL_ATTR_QUERY_OPTIMIZE_GOAL
-             DB2_FIRST_IO All queries are optimized with the goal of returning the first page of output as fast as possible. This goal works well when the output is controlled by a user who is most likely to cancel the query after viewing the first page of output data. Queries coded with an OPTIMIZE FOR nnn ROWS clause honor the goal specified by the clause.
-             DB2_ALL_IO All queries are optimized with the goal of running the entire query to completion in the shortest amount of elapsed time. This is a good option when the output of a query is being written to a file or report, or the interface is queuing the output data. Queries coded with an OPTIMIZE FOR nnn ROWS clause honor the goal specified by the clause. This is the default.
-             */
-	    pvParam = option_num;
-	    switch (option_num) {
+		/* i5_query_optimize - SQL_ATTR_QUERY_OPTIMIZE_GOAL
+		 * DB2_FIRST_IO All queries are optimized with the goal of returning the first page of output as fast as possible. 
+		 *     This goal works well when the output is controlled by a user who is most likely to cancel 
+		 *     the query after viewing the first page of output data. Queries coded with an OPTIMIZE FOR nnn ROWS clause 
+		 *     honor the goal specified by the clause.
+		 * DB2_ALL_IO All queries are optimized with the goal of running the entire query to completion in the shortest amount of elapsed time. 
+		 *     This is a good option when the output of a query is being written to a file or report, or the interface is queuing the output data.
+		 *     Queries coded with an OPTIMIZE FOR nnn ROWS clause honor the goal specified by the clause. This is the default.
+		 */
+		pvParam = option_num;
+		switch (option_num) {
 			case DB2_FIRST_IO:
 			case DB2_ALL_IO:
 				rc = SQLSetConnectAttr((SQLHDBC)((conn_handle*)handle)->hdbc, SQL_ATTR_QUERY_OPTIMIZE_GOAL, (SQLPOINTER)pvParam, SQL_IS_INTEGER);
@@ -1862,14 +1961,15 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 				break;
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "i5_fetch_only (DB2_FIRST_IO, DB2_ALL_IO)");
-	    }
+		}
 	} else if (!STRCASECMP(opt_key, "i5_fetch_only")) {
-          /* i5_fetch_only - SQL_ATTR_FOR_FETCH_ONLY
-             DB2_I5_FETCH_ON - Cursors are read-only and cannot be used for positioned updates or deletes. This is the default unless SQL_ATTR_FOR_FETCH_ONLY environment has been set to SQL_FALSE. 
-             DB2_I5_FETCH_OFF - Cursors can be used for positioned updates and deletes.
-             */
-	    pvParam = option_num;
-	    switch (option_num) {
+		/* i5_fetch_only - SQL_ATTR_FOR_FETCH_ONLY
+		 * DB2_I5_FETCH_ON - Cursors are read-only and cannot be used for positioned updates or deletes. 
+		 *     This is the default unless SQL_ATTR_FOR_FETCH_ONLY environment has been set to SQL_FALSE. 
+		 * DB2_I5_FETCH_OFF - Cursors can be used for positioned updates and deletes.
+		 */
+		pvParam = option_num;
+		switch (option_num) {
 			case DB2_I5_FETCH_ON:
 			case DB2_I5_FETCH_OFF:
 				rc = SQLSetStmtAttr((SQLHSTMT)((stmt_handle *)handle)->hstmt,
@@ -1952,40 +2052,36 @@ static int _php_db2_parse_options ( zval *options, int type, void *handle TSRMLS
 	zval **data;
 	zval **tc_pass = NULL;
 #if PHP_MAJOR_VERSION >= 7
-    zend_string *key = NULL;
-    zval *val = NULL;
-    zend_ulong num_key;
+	zend_string *key = NULL;
+	zval *val = NULL;
+	zend_ulong num_key;
 #endif
 
 	if ( options != NULL) {
 #if PHP_MAJOR_VERSION >= 7
-        numOpts = zend_hash_num_elements(Z_ARRVAL_P(options));
-        zend_hash_internal_pointer_reset(Z_ARRVAL_P(options));
+		numOpts = zend_hash_num_elements(Z_ARRVAL_P(options));
+		zend_hash_internal_pointer_reset(Z_ARRVAL_P(options));
 
-        ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(options), num_key, key, val) {
-            if (key) {
-                data = &val;
-                opt_key = ZSTR_VAL(key);
-                if (!STRCASECMP(opt_key, "trusted_password")) {
-                    tc_pass = data;
-                } else {
-                    /* Assign options to handle. */
-                    /* Sets the options in the handle with CLI/ODBC calls */
-                    _php_db2_assign_options( handle, type, opt_key, data TSRMLS_CC );
-                }
-
-                /* Since zend_hash_get_current_key assigns memory to this
-                   string each time it is called */
-
-            } else {
-                return -1;
-            }
-        }ZEND_HASH_FOREACH_END();
-        if(tc_pass != NULL) {
-            /* Assign options to handle. */
-            /* Sets the options in the handle with CLI/ODBC calls */
-            _php_db2_assign_options( handle, type, "trusted_password", tc_pass TSRMLS_CC );
-        }
+		ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(options), num_key, key, val) {
+			if (key) {
+				data = &val;
+				opt_key = ZSTR_VAL(key);
+				if (!STRCASECMP(opt_key, "trusted_password")) {
+					tc_pass = data;
+				} else {
+					/* Assign options to handle. */
+					/* Sets the options in the handle with CLI/ODBC calls */
+					_php_db2_assign_options( handle, type, opt_key, data TSRMLS_CC );
+				}
+			} else {
+				return -1;
+			}
+		} ZEND_HASH_FOREACH_END();
+		if (tc_pass != NULL) {
+			/* Assign options to handle. */
+			/* Sets the options in the handle with CLI/ODBC calls */
+			_php_db2_assign_options( handle, type, "trusted_password", tc_pass TSRMLS_CC );
+		}
 #else
 		numOpts = zend_hash_num_elements(Z_ARRVAL_P(options));
 		zend_hash_internal_pointer_reset(Z_ARRVAL_P(options));
@@ -2006,7 +2102,6 @@ static int _php_db2_parse_options ( zval *options, int type, void *handle TSRMLS
 					zend_hash_move_forward(Z_ARRVAL_P(options));
 					/* Since zend_hash_get_current_key assigns memory to this
 					string each time it is called */
-
 					if (opt_key) {
 						efree(opt_key);
 					}
@@ -2073,12 +2168,12 @@ static int _php_db2_get_result_set_info(stmt_handle *stmt_res TSRMLS_DC)
 			stmt_res->column_info[i].name = (SQLCHAR *)estrdup(tmp_name);
 		}
 		switch (stmt_res->column_info[i].type) {
-		        /* BIGINT 9223372036854775807  (2^63-1) string convert */
+			/* BIGINT 9223372036854775807  (2^63-1) string convert */
 			case SQL_BIGINT: 
-			    stmt_res->column_info[i].size = 20;
-			    break;
+				stmt_res->column_info[i].size = 20;
+				break;
 			default:
-			    break;
+				break;
 		}
 #ifdef PASE /* i5/OS DBCS may have up to 6 times growth in column alloc size on convert */
 		if (stmt_res->s_i5_dbcs_alloc > 0) {
@@ -2344,62 +2439,62 @@ static void _php_db2_clear_exec_many_err_cache( void *stmt )
 #ifdef PASE /* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
 static int _php_db2_i5_current_user(conn_handle *conn_res, char *uid, int uid_len)
 {
-    int rc;
-    char query[512];
-    char *query_string=(char *)&query;
-    int query_string_len;
-    char *stmt_string;
-    int stmt_string_len;
-    stmt_handle *stmt_res;
-    SQLINTEGER fStrLen = SQL_NTS;
+	int rc;
+	char query[512];
+	char *query_string=(char *)&query;
+	int query_string_len;
+	char *stmt_string;
+	int stmt_string_len;
+	stmt_handle *stmt_res;
+	SQLINTEGER fStrLen = SQL_NTS;
 
 	if (!conn_res || !uid || uid_len < 10) {
 		return;
 	}
 
-    _php_db2_clear_stmt_err_cache(TSRMLS_C);
+	_php_db2_clear_stmt_err_cache(TSRMLS_C);
 
-    stmt_res = _db2_new_stmt_struct(conn_res);
+	stmt_res = _db2_new_stmt_struct(conn_res);
 
-    /* alloc handle */
-    rc = SQLAllocHandle(SQL_HANDLE_STMT, conn_res->hdbc, &(stmt_res->hstmt));
-    if ( rc < SQL_SUCCESS ) {
+	/* alloc handle */
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn_res->hdbc, &(stmt_res->hstmt));
+	if ( rc < SQL_SUCCESS ) {
 		_php_db2_check_sql_errors(conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
-    }
+	}
 
-    /* exec statement */
-    if (rc == SQL_SUCCESS) {
-        memset(query_string,0,sizeof(query));
+	/* exec statement */
+	if (rc == SQL_SUCCESS) {
+		memset(query_string,0,sizeof(query));
 		strcpy(query_string, "SELECT USER FROM SYSIBM.SYSDUMMY1");
-        query_string_len = strlen(query_string);
-        rc = SQLExecDirect((SQLHSTMT)stmt_res->hstmt, query_string, query_string_len);
-        if ( rc == SQL_ERROR ) {
-		    _php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
-        }
-    }
+		query_string_len = strlen(query_string);
+		rc = SQLExecDirect((SQLHSTMT)stmt_res->hstmt, query_string, query_string_len);
+		if ( rc == SQL_ERROR ) {
+			_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
+		}
+	}
 
-    /* bind col */
-    if (rc == SQL_SUCCESS) {
-        rc = SQLBindCol((SQLHSTMT)stmt_res->hstmt, 1, SQL_CHAR, uid, uid_len, &fStrLen);
-	    if (rc == SQL_ERROR) {
-		    _php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
-        }
-    }
+	/* bind col */
+	if (rc == SQL_SUCCESS) {
+		rc = SQLBindCol((SQLHSTMT)stmt_res->hstmt, 1, SQL_CHAR, uid, uid_len, &fStrLen);
+		if (rc == SQL_ERROR) {
+			_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
+		}
+	}
 
-    /* fetch data */
-    if (rc == SQL_SUCCESS) {
-	    rc = SQLFetch((SQLHSTMT)stmt_res->hstmt);
-	    if (rc == SQL_ERROR) {
-		    _php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
-	    }
-    }
+	/* fetch data */
+	if (rc == SQL_SUCCESS) {
+		rc = SQLFetch((SQLHSTMT)stmt_res->hstmt);
+		if (rc == SQL_ERROR) {
+			_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
+		}
+	}
 
 
-    /* free handle */
-    SQLFreeHandle( SQL_HANDLE_STMT, stmt_res->hstmt );
-    efree(stmt_res);
+	/* free handle */
+	SQLFreeHandle( SQL_HANDLE_STMT, stmt_res->hstmt );
+	efree(stmt_res);
 
-    return rc;
+	return rc;
 }
 #endif /* PASE */
 
@@ -2422,17 +2517,17 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 	char server[2048];
 	long attr = SQL_TRUE;
 #if PHP_MAJOR_VERSION >= 7
-    size_t database_len;
-    size_t uid_len;
-    size_t password_len;
-    zend_string *key = NULL;
-    zval *temp = NULL;
-    ZEND_RESOURCE *newEntry;
+	size_t database_len;
+	size_t uid_len;
+	size_t password_len;
+	zend_string *key = NULL;
+	zval *temp = NULL;
+	ZEND_RESOURCE *newEntry;
 #else
-    ZEND_RESOURCE newEntry;
-    int database_len;
-    int uid_len;
-    int password_len;
+	ZEND_RESOURCE newEntry;
+	int database_len;
+	int uid_len;
+	int password_len;
 #endif
 #ifdef PASE
 	char buffer11[11];
@@ -2471,14 +2566,12 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 			hKey = (char *) ecalloc(1, hKeyLen);
 
 			sprintf(hKey, "__db2_%s.%s.%s", uid, database, password);
-
 #if PHP_MAJOR_VERSION >= 7
-            temp = zend_hash_str_find_ind(&EG(persistent_list), hKey, hKeyLen );
-
-            if ( temp != NULL ) {
-                entry = Z_RES_P(temp);
+			temp = zend_hash_str_find_ind(&EG(persistent_list), hKey, hKeyLen );
+			if ( temp != NULL ) {
+				entry = Z_RES_P(temp);
 #else
-                if (zend_hash_find(&EG(persistent_list), hKey, hKeyLen, (void **) &entry) == SUCCESS) {
+			if (zend_hash_find(&EG(persistent_list), hKey, hKeyLen, (void **) &entry) == SUCCESS) {
 #endif
 				conn_res = *pconn_res = (conn_handle *) entry->ptr;
 #ifndef PASE /* IBM i not support ping (DB2 for i not a daemon-style database, no port, etc.) */
@@ -2710,7 +2803,9 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 #endif /* PASE */
 				_php_db2_check_sql_errors(conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 				SQLFreeHandle( SQL_HANDLE_DBC, conn_res->hdbc );
+#ifndef PASE /* IBM i too noisy */
 				SQLFreeHandle(SQL_HANDLE_ENV, conn_res->henv);
+#endif /* PASE */
 				break;
 			}
 
@@ -2725,7 +2820,9 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 				_php_db2_check_sql_errors(conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 				SQLDisconnect((SQLHDBC)conn_res->hdbc);
 				SQLFreeHandle( SQL_HANDLE_DBC, conn_res->hdbc );
+#ifndef PASE /* IBM i too noisy */
 				SQLFreeHandle(SQL_HANDLE_ENV, conn_res->henv);
+#endif /* PASE */
 				break;
 			} else {
 				conn_res->expansion_factor = sqlca.sqlerrd[1];	
@@ -2740,7 +2837,9 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 				_php_db2_check_sql_errors(conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 				SQLDisconnect((SQLHDBC)conn_res->hdbc);
 				SQLFreeHandle( SQL_HANDLE_DBC, conn_res->hdbc );
+#ifndef PASE /* IBM i too noisy */
 				SQLFreeHandle(SQL_HANDLE_ENV, conn_res->henv);
+#endif /* PASE */
 				break;
 			}
 
@@ -2785,18 +2884,18 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 		if (! reused && rc == SQL_SUCCESS) {
 			/* If we created a new persistent connection, add it to the persistent_list */
 #if PHP_MAJOR_VERSION >= 7
-                newEntry = (ZEND_RESOURCE *)ecalloc(1,sizeof(ZEND_RESOURCE));
-                memset(newEntry, 0, sizeof(newEntry));
-                memset(&newEntrydata, 0, sizeof(newEntrydata));
-                ZEND_Z_TYPE_RESOURCE(*newEntry) = le_pconn_struct;
-                newEntry->ptr = conn_res;
-                newEntrydata.value.res = newEntry;
-                if (zend_hash_str_update(&EG(persistent_list), hKey, hKeyLen, &newEntrydata) == NULL) {
+			newEntry = (ZEND_RESOURCE *)ecalloc(1,sizeof(ZEND_RESOURCE));
+			memset(newEntry, 0, sizeof(newEntry));
+			memset(&newEntrydata, 0, sizeof(newEntrydata));
+			ZEND_Z_TYPE_RESOURCE(*newEntry) = le_pconn_struct;
+			newEntry->ptr = conn_res;
+			newEntrydata.value.res = newEntry;
+			if (zend_hash_str_update(&EG(persistent_list), hKey, hKeyLen, &newEntrydata) == NULL) {
 #else
 			memset(&newEntry, 0, sizeof(newEntry));
 			Z_TYPE(newEntry) = le_pconn_struct;
 			newEntry.ptr = conn_res;
-                    if (zend_hash_update(&EG(persistent_list), hKey, hKeyLen, (void *) &newEntry, sizeof(ZEND_RESOURCE), NULL)==FAILURE) {
+			if (zend_hash_update(&EG(persistent_list), hKey, hKeyLen, (void *) &newEntry, sizeof(ZEND_RESOURCE), NULL)==FAILURE) {
 #endif
 				rc = SQL_ERROR;
 				/* TBD: What error to return?, for now just generic SQL_ERROR */
@@ -3112,19 +3211,19 @@ PHP_FUNCTION(db2_bind_param)
 	int argc = ZEND_NUM_ARGS();
 	int stmt_id = -1;
 #if PHP_MAJOR_VERSION >= 7
-    size_t varname_len;
-    zend_long param_no = 0;
-    zend_long data_type = 0;
-    zend_long precision = -1;
-    zend_long scale = 0;
-    zend_long param_type; /* set default here */
+	size_t varname_len;
+	zend_long param_no = 0;
+	zend_long data_type = 0;
+	zend_long precision = -1;
+	zend_long scale = 0;
+	zend_long param_type; /* set default here */
 #else
-    long param_type; /* set default here */
-    int varname_len;
-    long param_no = 0;
-    long data_type = 0;
-    long precision = -1;
-    long scale = 0;
+	long param_type; /* set default here */
+	int varname_len;
+	long param_no = 0;
+	long data_type = 0;
+	long precision = -1;
+	long scale = 0;
 #endif
 	/* LONG types used for data being passed in */
 	SQLSMALLINT sql_data_type = 0;
@@ -3329,23 +3428,23 @@ PHP_FUNCTION(db2_column_privileges)
 {
 	int argc = ZEND_NUM_ARGS();
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    char *column_name = NULL;
-    size_t qualifier_len = 0;
-    size_t owner_len = 0;
-    size_t table_name_len = 0;
-    size_t column_name_len = 0;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	char *column_name = NULL;
+	size_t qualifier_len = 0;
+	size_t owner_len = 0;
+	size_t table_name_len = 0;
+	size_t column_name_len = 0;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    SQLCHAR *column_name = NULL;
-    int qualifier_len = 0;
-    int owner_len = 0;
-    int table_name_len = 0;
-    int column_name_len = 0;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	SQLCHAR *column_name = NULL;
+	int qualifier_len = 0;
+	int owner_len = 0;
+	int table_name_len = 0;
+	int column_name_len = 0;
 #endif
 	int connection_id = -1;
 	zval *connection = NULL;
@@ -3395,6 +3494,9 @@ PHP_FUNCTION(db2_column_privileges)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	} else {
 		RETURN_FALSE;
@@ -3407,23 +3509,23 @@ Returns a result set listing the columns and associated metadata for a table */
 PHP_FUNCTION(db2_columns)
 {
 #if PHP_MAJOR_VERSION < 7
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    SQLCHAR *column_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int table_name_len;
-    int column_name_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	SQLCHAR *column_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int table_name_len;
+	int column_name_len;
 #else
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    char *column_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t table_name_len;
-    size_t column_name_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	char *column_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t table_name_len;
+	size_t column_name_len;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	int connection_id = -1;
@@ -3470,7 +3572,9 @@ PHP_FUNCTION(db2_columns)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
-
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	}
 }
@@ -3481,19 +3585,19 @@ Returns a result set listing the foreign keys for a table */
 PHP_FUNCTION(db2_foreign_keys)
 {
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t table_name_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t table_name_len;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int table_name_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int table_name_len;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	int connection_id = -1;
@@ -3543,8 +3647,10 @@ PHP_FUNCTION(db2_foreign_keys)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
-
 	} else {
 		RETURN_FALSE;
 	}
@@ -3557,19 +3663,19 @@ Returns a result set listing primary keys for a table */
 PHP_FUNCTION(db2_primary_keys)
 {
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t table_name_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t table_name_len;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int table_name_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int table_name_len;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	int connection_id = -1;
@@ -3614,8 +3720,10 @@ PHP_FUNCTION(db2_primary_keys)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
-
 	} else {
 		RETURN_FALSE;
 	}
@@ -3628,23 +3736,23 @@ PHP_FUNCTION(db2_procedure_columns)
 {
     int argc = ZEND_NUM_ARGS();
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *proc_name = NULL;
-    char *column_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t proc_name_len;
-    size_t column_name_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *proc_name = NULL;
+	char *column_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t proc_name_len;
+	size_t column_name_len;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *proc_name = NULL;
-    SQLCHAR *column_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int proc_name_len;
-    int column_name_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *proc_name = NULL;
+	SQLCHAR *column_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int proc_name_len;
+	int column_name_len;
 #endif
 	int connection_id = -1;
 	int rc = 0;
@@ -3689,6 +3797,9 @@ PHP_FUNCTION(db2_procedure_columns)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	} else {
 		RETURN_FALSE;
@@ -3701,19 +3812,19 @@ Returns a result set listing the stored procedures registered in a database */
 PHP_FUNCTION(db2_procedures)
 {
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *proc_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t proc_name_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *proc_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t proc_name_len;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *proc_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int proc_name_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *proc_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int proc_name_len;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	zval *connection = NULL;
@@ -3757,6 +3868,9 @@ PHP_FUNCTION(db2_procedures)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	} else {
 		RETURN_FALSE;
@@ -3769,21 +3883,21 @@ Returns a result set listing the unique row identifier columns for a table */
 PHP_FUNCTION(db2_special_columns)
 {
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t table_name_len;
-    size_t scope;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t table_name_len;
+	size_t scope;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int table_name_len;
-    int scope;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int table_name_len;
+	int scope;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	int connection_id = -1;
@@ -3829,8 +3943,10 @@ PHP_FUNCTION(db2_special_columns)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
-
 	} else {
 		RETURN_FALSE;
 	}
@@ -3842,19 +3958,19 @@ Returns a result set listing the index and statistics for a table */
 PHP_FUNCTION(db2_statistics)
 {
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t table_name_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t table_name_len;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int table_name_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int table_name_len;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	zend_bool unique;
@@ -3904,6 +4020,9 @@ PHP_FUNCTION(db2_statistics)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	} else {
 		RETURN_FALSE;
@@ -3917,19 +4036,19 @@ Returns a result set listing the tables and associated privileges in a database 
 PHP_FUNCTION(db2_table_privileges)
 {
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t table_name_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t table_name_len;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    int qualifier_len;
-    int owner_len;
-    int table_name_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	int qualifier_len;
+	int owner_len;
+	int table_name_len;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	int connection_id = -1;
@@ -3978,6 +4097,9 @@ PHP_FUNCTION(db2_table_privileges)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	} else {
 		RETURN_FALSE;
@@ -3990,23 +4112,23 @@ Returns a result set listing the tables and associated metadata in a database */
 PHP_FUNCTION(db2_tables)
 {
 #if PHP_MAJOR_VERSION >= 7
-    char *qualifier = NULL;
-    char *owner = NULL;
-    char *table_name = NULL;
-    char *table_type = NULL;
-    size_t qualifier_len;
-    size_t owner_len;
-    size_t table_name_len;
-    size_t table_type_len;
+	char *qualifier = NULL;
+	char *owner = NULL;
+	char *table_name = NULL;
+	char *table_type = NULL;
+	size_t qualifier_len;
+	size_t owner_len;
+	size_t table_name_len;
+	size_t table_type_len;
 #else
-    SQLCHAR *qualifier = NULL;
-    SQLCHAR *owner = NULL;
-    SQLCHAR *table_name = NULL;
-    SQLCHAR *table_type = NULL;
-    int qualifier_len;
-    int owner_len;
-    int table_name_len;
-    int table_type_len;
+	SQLCHAR *qualifier = NULL;
+	SQLCHAR *owner = NULL;
+	SQLCHAR *table_name = NULL;
+	SQLCHAR *table_type = NULL;
+	int qualifier_len;
+	int owner_len;
+	int table_name_len;
+	int table_type_len;
 #endif
 	int argc = ZEND_NUM_ARGS();
 	int connection_id = -1;
@@ -4057,6 +4179,9 @@ PHP_FUNCTION(db2_tables)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	} else {
 		RETURN_FALSE;
@@ -4146,9 +4271,9 @@ Executes an SQL statement directly */
 PHP_FUNCTION(db2_exec)
 {
 #if PHP_MAJOR_VERSION >= 7
-    size_t stmt_string_len;
+	size_t stmt_string_len;
 #else
-    int stmt_string_len;
+	int stmt_string_len;
 #endif
 	char *stmt_string = NULL;
 	int argc = ZEND_NUM_ARGS();
@@ -4200,7 +4325,9 @@ PHP_FUNCTION(db2_exec)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
-
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	}
 }
@@ -4238,9 +4365,9 @@ Prepares an SQL statement */
 PHP_FUNCTION(db2_prepare)
 {
 #if PHP_MAJOR_VERSION >= 7
-    size_t stmt_string_len;
+	size_t stmt_string_len;
 #else
-    int stmt_string_len;
+	int stmt_string_len;
 #endif
 	char *stmt_string = NULL;
 	int argc = ZEND_NUM_ARGS();
@@ -4277,7 +4404,9 @@ PHP_FUNCTION(db2_prepare)
 			efree(stmt_res);
 			RETURN_FALSE;
 		}
-
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, stmt_res, le_stmt_struct);
 	}
 }
@@ -4319,6 +4448,70 @@ static param_node* _php_db2_build_list( stmt_handle *stmt_res, int param_no, SQL
 }
 /* }}} */
 
+
+/* {{{ static int _php_db2_param_pad_inout_or_out
+ * We need allocate full size buffers with INOUT and OUT
+ * params. A called stored procedure assumes write back buffer to maximum
+ * nbr of bytes. Aka, param CHAR(1024) INOUT must have buffer least 1024 (+1),
+ * requardless script provided fewer input bytes (origlen). On IBM i,
+ * 'user buffer' is directly written by stored procedure, so damage via
+ * 'too small' buffer can be catastrophic (wipe out script symbol table). 
+*/
+#define DB2_DEFAULT_PARAM_PAD 0xFF
+static int _php_db2_param_pad_inout_or_out(char pad, size_t length, zval **data TSRMLS_DC)
+{
+	size_t origlen = ZEND_Z_STRLEN_PP(data);
+	char platform_pad = DB2_DEFAULT_PARAM_PAD;
+	
+	/* Stored prcedure params: 
+	 * LUW normal:
+	 * Languages like c use NULL terminated strings, 
+	 * therefore extended string buffers can be zeros.
+	 * IBM i normal:
+	 * Langauges like RPG or Cobol rare use null terminated strings,
+	 * therefore end of data pad expected to be 'spaces'.
+	 */
+	if (pad == DB2_DEFAULT_PARAM_PAD) {
+#ifdef PASE
+		platform_pad = 0x20;
+#else
+		platform_pad = 0x00;
+#endif /* PASE */
+	} else {
+		platform_pad = pad;
+	}
+	/*
+	 * IS_INTERNED() macro to check if a given char* is interned or regular string
+	 * each string (or atom) is allocated once and never changed (immutable)
+	 * aka, not useful for IN and INOUT paramters obviously
+	 */
+	if (IS_INTERNED(ZEND_STR(*data))) {
+#if PHP_MAJOR_VERSION >= 7
+		Z_STR_P(*data) = zend_string_init(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data), 0);
+#else
+		ZEND_Z_STRVAL_PP(data) = estrndup(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data));
+#endif
+	}
+	if (origlen < length) {
+#if PHP_MAJOR_VERSION >= 7
+		Z_STR_P(*data) = zend_string_extend(Z_STR_P(*data), length + 1, 0);
+		memset(Z_STR_P(*data)->val + origlen, platform_pad, length - origlen);
+		Z_STR_P(*data)->val[length] = '\0';
+		/* zend_string_extend handles ZEND_Z_STRLEN_PP(data) = length*/
+#else
+		ZEND_Z_STRVAL_PP(data) = erealloc(ZEND_Z_STRVAL_PP(data), length + 1);
+		memset(ZEND_Z_STRVAL_PP(data) + origlen, platform_pad, length - origlen);
+		ZEND_Z_STRVAL_PP(data)[length] = '\0';
+		ZEND_Z_STRLEN_PP(data) = length;
+#endif
+	}
+	if (ZEND_Z_STRVAL_PP(data) == NULL ) {
+		return SQL_ERROR;
+	}
+	return SQL_SUCCESS;
+}
+/* }}} */
+
 /* {{{ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **bind_data )
 */
 static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **bind_data TSRMLS_DC)
@@ -4333,14 +4526,11 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 	if( curr->value != 0 && curr->param_type != DB2_PARAM_OUT && curr->param_type != DB2_PARAM_INOUT )
 		ZEND_ZVAL_PTR_DTOR(curr->value);
 #if PHP_MAJOR_VERSION >= 7
-    if(curr->value)
-        efree(curr->value);
-
-    curr->value = (zval *)emalloc(sizeof(zval));
-    ZVAL_LONG(curr->value, 0);
-
+	if(curr->value) efree(curr->value);
+	curr->value = (zval *)emalloc(sizeof(zval));
+	ZVAL_LONG(curr->value, 0);
 #else
-    MAKE_STD_ZVAL(curr->value);
+	MAKE_STD_ZVAL(curr->value);
 #endif
 
 	switch ( curr->data_type ) {
@@ -4381,67 +4571,15 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 			if (*bind_data && ZEND_Z_TYPE_PP(bind_data) != IS_STRING) {
 				convert_to_string(*bind_data);
 			}
-			if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
+			if (curr->param_type == DB2_PARAM_OUT 
+			|| curr->param_type == DB2_PARAM_INOUT
+			) {
 				origlen = ZEND_Z_STRLEN_PP(bind_data);
-#if PHP_MAJOR_VERSION >= 7
-                if(origlen == 0)
-                {
-                    origlen = curr->param_size +nullterm;
-                }
-#endif
-				if (IS_INTERNED(ZEND_STR(*bind_data))) {
-#if PHP_MAJOR_VERSION >= 7
-                    INIT_Z_STRVAL_PP(bind_data,estrndup,origlen);
-#else
-					ZEND_Z_STRVAL_PP(bind_data) = estrndup(ZEND_Z_STRVAL_PP(bind_data), origlen);
-#endif
+				if (_php_db2_param_pad_inout_or_out(DB2_DEFAULT_PARAM_PAD, curr->param_size + nullterm, bind_data) == SQL_ERROR) {
+					return SQL_ERROR;
 				}
-#if PHP_MAJOR_VERSION < 7
-				if (ZEND_Z_STRLEN_PP(bind_data) < curr->param_size+nullterm) {
-					ZEND_Z_STRVAL_PP(bind_data) = erealloc(ZEND_Z_STRVAL_PP(bind_data), curr->param_size+nullterm);
-					if (ZEND_Z_STRVAL_PP(bind_data) == NULL ) {
-						return SQL_ERROR;
-					}
-#ifndef PASE
-					if (curr->param_type == DB2_PARAM_INOUT)
-#endif
-						memset(ZEND_Z_STRVAL_PP(bind_data)+origlen,0x20, curr->param_size-origlen);
-					if (nullterm) {
-#ifndef PASE
-						ZEND_Z_STRVAL_PP(bind_data)[origlen] = '\0';
-#endif
-						ZEND_Z_STRVAL_PP(bind_data)[curr->param_size] = '\0';
-					}
-					ZEND_Z_STRLEN_PP(bind_data) = curr->param_size;
-				}
-#ifdef PASE /* help out PHP script trunc trailing chars -- LUW too? */
-				else if (ZEND_Z_STRLEN_PP(bind_data) > curr->param_size) {
-					ZEND_Z_STRVAL_PP(bind_data)[curr->param_size] = '\0';
-				}
-#endif /* PASE */
-#endif
 			}
-#ifdef PASE /* zero length valueType = SQL_C_CHAR bad for i5/OS SQLBindParameter */
-			else if (ZEND_Z_STRLEN_PP(bind_data) == 0) {
-				if (IS_INTERNED(ZEND_STR(*bind_data))) {
-#if PHP_MAJOR_VERSION >= 7
-                    INIT_Z_STRVAL_PP(bind_data,estrndup,ZEND_Z_STRLEN_PP(bind_data));
-#else
-					ZEND_Z_STRVAL_PP(bind_data) = estrndup(ZEND_Z_STRVAL_PP(bind_data), ZEND_Z_STRLEN_PP(bind_data));
-#endif
-				}
-				ZEND_Z_TYPE_PP(bind_data) = IS_STRING;
-#if PHP_MAJOR_VERSION < 7
-				ZEND_Z_STRVAL_PP(bind_data) = erealloc(ZEND_Z_STRVAL_PP(bind_data), curr->param_size+nullterm);
-				memset(ZEND_Z_STRVAL_PP(bind_data), 0x20, curr->param_size+nullterm);
-				if (nullterm) {
-					ZEND_Z_STRVAL_PP(bind_data)[curr->param_size] = '\0';
-				}
-				ZEND_Z_STRLEN_PP(bind_data) = curr->param_size;
-#endif
-			}
-			/* i5/OS int not big enough (zero fill left justified signed number) */
-			/* i5/OS - new BIGINT string for large numbers (fix prev code error) */
+#ifdef PASE /* i5/OS int not big enough (zero fill left justified signed number) - new BIGINT string for large numbers (fix prev code error) */
 			if (curr->data_type == SQL_BIGINT) {
 				char *front,*back,*here;
 				int isNeg = 0;
@@ -4461,63 +4599,29 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 					*front = '-';
 				}
 			}
-			/* i5/OS - new BIGINT string for large numbers (fix prev code error) */
 #endif /* PASE */
 			break;
 		case SQL_TYPE_DATE:
 		case SQL_DATETIME:
 		case SQL_TYPE_TIME:
 		case SQL_TYPE_TIMESTAMP:
-			if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
-				int origlen = ZEND_Z_STRLEN_PP(bind_data);
-#if PHP_MAJOR_VERSION >= 7
-                if(origlen == 0)
-                {
-                    origlen = curr->param_size +1;
-                }
-#endif
-				if (IS_INTERNED(ZEND_STR(*bind_data))) {
-#if PHP_MAJOR_VERSION >= 7
-                    INIT_Z_STRVAL_PP(bind_data,estrndup,origlen);
-					if (ZEND_Z_STRVAL_PP(bind_data) == NULL ) {
-						return SQL_ERROR;
-					}
-#else
-					ZEND_Z_STRVAL_PP(bind_data) = estrndup(ZEND_Z_STRVAL_PP(bind_data), ZEND_Z_STRLEN_PP(bind_data));
-#endif
-				}
-#if PHP_MAJOR_VERSION < 7
-				if (ZEND_Z_STRLEN_PP(bind_data) < curr->param_size + 1) {
-					ZEND_Z_STRVAL_PP(bind_data) = erealloc(ZEND_Z_STRVAL_PP(bind_data), curr->param_size + 1);
-					if (ZEND_Z_STRVAL_PP(bind_data) == NULL ) {
-						return SQL_ERROR;
-					}
-					if (curr->param_type == DB2_PARAM_INOUT)
-						memset(ZEND_Z_STRVAL_PP(bind_data) + origlen,0x20, curr->param_size-origlen);
-					ZEND_Z_STRVAL_PP(bind_data)[curr->param_size] = '\0';
-					ZEND_Z_STRLEN_PP(bind_data) = curr->param_size;
-				}
-#endif
+			/* ADC: test 145/many need NULL special handling (LUW and i5/OS) */
+			if (ZEND_Z_TYPE_PP(bind_data) == IS_NULL){
+				break;
 			}
-#ifdef PASE /* zero length valueType = SQL_C_CHAR bad for i5/OS SQLBindParameter */
-			else if (ZEND_Z_STRLEN_PP(bind_data) == 0) {
-				if (IS_INTERNED(ZEND_STR(*bind_data))) {
-#if PHP_MAJOR_VERSION >= 7
-                    INIT_Z_STRVAL_PP(bind_data,estrndup,ZEND_Z_STRLEN_PP(bind_data));
-#else 
-					ZEND_Z_STRVAL_PP(bind_data) = estrndup(ZEND_Z_STRVAL_PP(bind_data), ZEND_Z_STRLEN_PP(bind_data));
-#endif
-				}
-#if PHP_MAJOR_VERSION < 7
-				ZEND_Z_STRVAL_PP(bind_data) = erealloc(ZEND_Z_STRVAL_PP(bind_data), curr->param_size + 1);
-				memset(ZEND_Z_STRVAL_PP(bind_data), 0x20, curr->param_size + 1);
-				ZEND_Z_STRVAL_PP(bind_data)[curr->param_size] = '\0';
-				ZEND_Z_STRLEN_PP(bind_data) = curr->param_size;
-#endif
+			/* make sure copy in is a string (ZEND_Z_STRVAL_PP(bind_data) && ) */
+			if (*bind_data && ZEND_Z_TYPE_PP(bind_data) != IS_STRING) {
+				convert_to_string(*bind_data);
 			}
-#endif /* PASE */
+			if (curr->param_type == DB2_PARAM_OUT 
+			|| curr->param_type == DB2_PARAM_INOUT
+			) {
+				origlen = ZEND_Z_STRLEN_PP(bind_data);
+				if (_php_db2_param_pad_inout_or_out(DB2_DEFAULT_PARAM_PAD, curr->param_size + nullterm, bind_data) == SQL_ERROR) {
+					return SQL_ERROR;
+				}
+			}
 			break;
-
 
 		default:
 			return SQL_ERROR;
@@ -4526,12 +4630,11 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 	/* copy data over from bind_data */
 	*(curr->value) = **bind_data;
 #if PHP_MAJOR_VERSION <7
-    zval_copy_ctor(curr->value);
-    INIT_PZVAL(curr->value);
+	zval_copy_ctor(curr->value);
+	INIT_PZVAL(curr->value);
 #else
-    zval_copy_ctor(curr->value);
+	zval_copy_ctor(curr->value);
 #endif
-
 	/* Have to use SQLBindFileToParam if PARAM is type DB2_PARAM_FILE */
 	if ( curr->param_type == DB2_PARAM_FILE) {
 		/* Only string types can be bound */
@@ -4555,10 +4658,10 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 
 	switch(ZEND_Z_TYPE_PP(bind_data)) {
 #if PHP_MAJOR_VERSION >= 7
-        case IS_TRUE:
-        case IS_FALSE:
+		case IS_TRUE:
+		case IS_FALSE:
 #else
-        case IS_BOOL:
+		case IS_BOOL:
 #endif
 		case IS_LONG:
 			curr->long_value = (SQLINTEGER)(curr->value)->value.lval;
@@ -4640,11 +4743,17 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 					valueType = SQL_C_BINARY;
 					paramValuePtr = (SQLPOINTER)(Z_STRVAL_P(curr->value));
 					break;
-/*Not only PASE this applies to LUW too*/
-/*#ifdef PASE /* i5/OS should be SQL_NTS to avoid extra spaces */
 				case SQL_VARCHAR:
 					valueType = SQL_C_CHAR;
+#ifdef PASE /* IBM i SQL_NTS will not return inout bind_indicator size (bug?) */
+					if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
+						curr->bind_indicator = origlen;
+					} else {
+						curr->bind_indicator = SQL_NTS;
+					}
+#else
 					curr->bind_indicator = SQL_NTS;
+#endif
 					paramValuePtr = (SQLPOINTER)(Z_STRVAL_P(curr->value));
 					break;
 				case SQL_BIGINT:
@@ -4652,32 +4761,25 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 					curr->bind_indicator = SQL_NTS; /* 20 */
 					paramValuePtr = (SQLPOINTER)(Z_STRVAL_P(curr->value));
 					break;
-/*#endif /* PASE */
-				/* This option should handle most other types such as DATE, VARCHAR etc */
+				/* This option should handle most other types such as DATE, CHAR etc */
 				default:
 					valueType = SQL_C_CHAR;
+#ifdef PASE /* IBM i null term string best handled SQL_NTS */
+					if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
+						curr->bind_indicator = origlen;
+					} else if (nullterm) {
+						curr->bind_indicator = SQL_NTS;
+					} else {
+						curr->bind_indicator = Z_STRLEN_P(curr->value);
+					}
+#else
 					curr->bind_indicator = Z_STRLEN_P(curr->value);
+#endif /* PASE */
 					paramValuePtr = (SQLPOINTER)(Z_STRVAL_P(curr->value));
 			}
-#if PHP_MAJOR_VERSION >= 7
-            if( curr->param_type == DB2_PARAM_OUT )
-            {
-            rc = SQLBindParameter(stmt_res->hstmt, curr->param_num,
-                    curr->param_type, valueType, curr->data_type, curr->param_size,
-                    curr->scale, paramValuePtr, curr->param_size+Z_STRLEN_P(curr->value)+1, &(curr->bind_indicator));
-            }
-            else
-            {
-            rc = SQLBindParameter(stmt_res->hstmt, curr->param_num,
-                    curr->param_type, valueType, curr->data_type, curr->param_size,
-                    curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+1, &(curr->bind_indicator));
-            }
-#else
-            rc = SQLBindParameter(stmt_res->hstmt, curr->param_num,
-                    curr->param_type, valueType, curr->data_type, curr->param_size,
-                    curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+1, &(curr->bind_indicator));
-#endif
-
+			rc = SQLBindParameter(stmt_res->hstmt, curr->param_num,
+				curr->param_type, valueType, curr->data_type, curr->param_size,
+				curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+1, &(curr->bind_indicator));
 			if ( rc == SQL_ERROR ) {
 				_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 			}
@@ -4709,59 +4811,31 @@ static int _php_db2_execute_helper(stmt_handle *stmt_res, zval **data, int bind_
 	param_node *curr = NULL;	/* To traverse the list */
 	zval **bind_data;			/* Data value from symbol table */
     zval *temp = NULL;
-
 	/* Used in call to SQLDescribeParam if needed */
 	SQLUSMALLINT param_no;
 	SQLSMALLINT data_type;
 	SQLUINTEGER precision;
 	SQLSMALLINT scale;
 	SQLSMALLINT nullable;
+	zend_array * symbol_table_used; /* php 5.3+, php 7+ */
 
 	/* This variable means that we bind the complete list of params cached */
 	/* The values used are fetched from the active symbol table */
 	/* TODO: Enhance this part to check for stmt_res->file_param */
 	/* If this flag is set, then use SQLBindParam, else use SQLExtendedBind */
 	if ( bind_cmp_list ) {
-#if PHP_MAJOR_VERSION >= 5 && PHP_MINOR_VERSION >= 3
-		/* ADC - PHP changed general behavior 5.3+ */
-		if (!EG(ACTIVE_SYMBOL_TABLE)) {
-    		zend_rebuild_symbol_table(TSRMLS_C);
-		}
-#endif
 		/* Bind the complete list sequentially */
 		/* Used when no parameters array is passed in */
 		curr = stmt_res->head_cache_list;
-
 		while (curr != NULL ) {
-			/* Fetch data from symbol table */
-#if PHP_MAJOR_VERSION >= 7
-            temp =  zend_hash_str_find_ind( &EG(ACTIVE_SYMBOL_TABLE), curr->varname, strlen(curr->varname) );
-            if(temp != NULL) {
-                bind_data = &temp;
-#else
-                if ( zend_hash_find(EG(ACTIVE_SYMBOL_TABLE), curr->varname,
-                            strlen(curr->varname)+1, (void **) &bind_data ) != FAILURE ){ 
-#endif
+			if (_php_db2_hash_find_ind(curr->varname, strlen(curr->varname), &temp, &bind_data, &symbol_table_used) != FAILURE ) {
 				rc = _php_db2_bind_data( stmt_res, curr, bind_data TSRMLS_CC);
 				if ( rc == SQL_ERROR ) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Binding Error 1");
 					return rc;
 				}
 				curr = curr->next;
-			}
-#if PHP_MAJOR_VERSION < 7
-            else if ( zend_hash_find(&EG(symbol_table), curr->varname,
-						strlen(curr->varname)+1, (void **) &bind_data ) != FAILURE ) {
-				rc = _php_db2_bind_data( stmt_res, curr, bind_data TSRMLS_CC);
-				if ( rc == SQL_ERROR ) {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Binding Error 1");
-					return rc;
-				}
-				curr = curr->next;
-			}
-#endif
-            else {
-				/* value not found in the active symbol table */
+			} else {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Value Not Bound");
 				return SQL_ERROR;
 			}
@@ -4852,6 +4926,8 @@ static void _free_param_cache_list(stmt_handle *stmt_res) {
 }
 /* }}} */
 
+
+
 /* {{{ proto bool db2_execute(resource stmt [, array parameters_array])
 Executes a prepared SQL statement */
 PHP_FUNCTION(db2_execute)
@@ -4863,11 +4939,15 @@ PHP_FUNCTION(db2_execute)
 	stmt_handle *stmt_res;
 	int rc, numOpts, i, bind_params = 0;
 	SQLSMALLINT num;
+	char * origptr = NULL;
+	int origlen = 0;
+	int bindlen = 0;
+	zval *put_val;
 #if PHP_MAJOR_VERSION >= 7
-    zval *val;
-    zend_string *key,*key1;
-    char str[1024] = {0};
-    ulong num_key;
+	zval *val;
+	zend_string *key,*key1;
+	char str[1024] = {0};
+	ulong num_key;
 #endif
 #ifdef PASE /* i5 LUW bug -- this is an output for SQLParamData */	
 	SQLPOINTER valuePtr=NULL;
@@ -4931,46 +5011,41 @@ PHP_FUNCTION(db2_execute)
 			}
 
 #if PHP_MAJOR_VERSION >= 7
-            ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(parameters_array), num_key, key, val) {
-                /* Bind values from the parameters_array to params */
-                data = &val;
-
-                /*
-                   The 0 denotes that you work only with the current node.
-                   The 4th argument specifies whether the data passed in
-                   has been described. So we need to call SQLDescribeParam
-                   before binding depending on this.
-                 */
-                rc = _php_db2_execute_helper(stmt_res, data, 0, bind_params TSRMLS_CC);
-                if ( rc == SQL_ERROR) {
-                    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Binding Error");
-                    RETURN_FALSE;
-                }
-
-                /* Move array ptr forward */
-            }ZEND_HASH_FOREACH_END();
+			ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(parameters_array), num_key, key, val) {
+				/* Bind values from the parameters_array to params */
+				data = &val;
+				/* 
+				The 0 denotes that you work only with the current node.
+				The 4th argument specifies whether the data passed in
+				has been described. So we need to call SQLDescribeParam
+				before binding depending on this.
+				*/
+				rc = _php_db2_execute_helper(stmt_res, data, 0, bind_params TSRMLS_CC);
+				if ( rc == SQL_ERROR) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Binding Error");
+					RETURN_FALSE;
+				}
+				/* Move array ptr forward */
+			} ZEND_HASH_FOREACH_END();
 #else
-
-            zend_hash_internal_pointer_reset(Z_ARRVAL_P(parameters_array));
-            for ( i = 0; i < numOpts; i++) {
-                /* Bind values from the parameters_array to params */
-                zend_hash_get_current_data(Z_ARRVAL_P(parameters_array), (void**)&data);
-
-                /*
-                   The 0 denotes that you work only with the current node.
-                   The 4th argument specifies whether the data passed in
-                   has been described. So we need to call SQLDescribeParam
-                   before binding depending on this.
-                 */
-                rc = _php_db2_execute_helper(stmt_res, data, 0, bind_params TSRMLS_CC);
-                if ( rc == SQL_ERROR) {
-                    php_error_docref(NULL TSRMLS_CC, E_WARNING, "Binding Error");
-                    RETURN_FALSE;
-                }
-
-                /* Move array ptr forward */
-                zend_hash_move_forward(Z_ARRVAL_P(parameters_array));
-            }
+			zend_hash_internal_pointer_reset(Z_ARRVAL_P(parameters_array));
+			for ( i = 0; i < numOpts; i++) {
+				/* Bind values from the parameters_array to params */
+				zend_hash_get_current_data(Z_ARRVAL_P(parameters_array), (void**)&data);
+				/* 
+				The 0 denotes that you work only with the current node.
+				The 4th argument specifies whether the data passed in
+				has been described. So we need to call SQLDescribeParam
+				before binding depending on this.
+				*/
+				rc = _php_db2_execute_helper(stmt_res, data, 0, bind_params TSRMLS_CC);
+				if ( rc == SQL_ERROR) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Binding Error");
+					RETURN_FALSE;
+				}
+				/* Move array ptr forward */
+				zend_hash_move_forward(Z_ARRVAL_P(parameters_array));
+			}
 #endif
 		} else {
 			/* No additional params passed in. Use values already bound. */
@@ -5008,7 +5083,6 @@ PHP_FUNCTION(db2_execute)
 		}
 		RETURN_TRUE;
 	}
-
 	/* Execute Stmt -- All parameters bound */
 	rc = SQLExecute((SQLHSTMT)stmt_res->hstmt);
 	if ( rc == SQL_ERROR ) {
@@ -5024,11 +5098,8 @@ PHP_FUNCTION(db2_execute)
 	if ( rc == SQL_NEED_DATA ) {
 		while ( (rc = (SQLParamData((SQLHSTMT)stmt_res->hstmt, (SQLPOINTER *)&valuePtr))) == SQL_NEED_DATA ) {
 			/* passing data value for a parameter */
-#if PHP_MAJOR_VERSION >= 7
-            rc = SQLPutData((SQLHSTMT)stmt_res->hstmt, (SQLPOINTER)(ZSTR_VAL(((zend_value*)valuePtr)->str)), ZSTR_LEN(((zend_value*)valuePtr)->str));
-#else
-            rc = SQLPutData((SQLHSTMT)stmt_res->hstmt, (SQLPOINTER)(((zvalue_value*)valuePtr)->str.val), ((zvalue_value*)valuePtr)->str.len);
-#endif
+			put_val = (zval *) valuePtr;
+			rc = SQLPutData((SQLHSTMT)stmt_res->hstmt, (SQLPOINTER)Z_STRVAL_P(put_val), Z_STRLEN_P(put_val));
 			if ( rc == SQL_ERROR ) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Sending data failed");
 				_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
@@ -5041,100 +5112,74 @@ PHP_FUNCTION(db2_execute)
 			RETVAL_FALSE;
 		}
 	}
-
 	/* cleanup dynamic bindings if present */
 	if ( bind_params == 1 ) {
 		/* Free param cache list */
 		_free_param_cache_list(stmt_res);
 	} else {
-#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 3
-		/* ADC - PHP changed general behavior 5.3+ */
-		if (!EG(ACTIVE_SYMBOL_TABLE)) {
-    		zend_rebuild_symbol_table(TSRMLS_C);
-		}
-#endif
-		/* Bind the IN/OUT Params back into the active symbol table */
+		/* Bind the IN/OUT Params back into the active symbol table
+		 * see _php_db2_param_pad_inout_or_out, IS_INTERNED, etc.
+		*/
 		tmp_curr = stmt_res->head_cache_list;
 		while (tmp_curr != NULL) {
 			switch(tmp_curr->param_type) {
 				case DB2_PARAM_OUT:
 				case DB2_PARAM_INOUT:
-#ifdef PASE /* i5/OS SQL_NO_TOTAL didn't quite work (i DB2 bug?) */
-					if( ZEND_Z_TYPE_P( tmp_curr->value ) == IS_STRING
-					&& tmp_curr->bind_indicator != SQL_NULL_DATA
-					&& tmp_curr->bind_indicator == SQL_NO_TOTAL) {
-						tmp_curr->bind_indicator = Z_STRLEN_P(tmp_curr->value);
-					}
-#endif /* PASE */
-					if( ZEND_Z_TYPE_P( tmp_curr->value ) == IS_STRING 
-					&& tmp_curr->bind_indicator != SQL_NULL_DATA
-					&& tmp_curr->bind_indicator != SQL_NO_TOTAL) {
-						/*
-							if the length of the string out parameter is returned
-							then correct the length of the corresponding php variable
-						*/
-						if(Z_STRLEN_P(tmp_curr->value) < tmp_curr->bind_indicator) {
-							tmp_curr->bind_indicator = Z_STRLEN_P(tmp_curr->value);
-						}
+					if (ZEND_Z_TYPE_P( tmp_curr->value ) == IS_STRING) {
+						if (tmp_curr->bind_indicator == SQL_NULL_DATA) {
+							if(Z_STRVAL_P(tmp_curr->value) != NULL || Z_STRLEN_P(tmp_curr->value) != 0) {
+								efree(ZEND_STR(tmp_curr->value));
+							}
+							ZEND_Z_TYPE_P(tmp_curr->value) = IS_NULL;
+						} else {
+							/*
+								if the length of the string out parameter is returned
+								then correct the length of the corresponding php variable
+							*/
+							origlen = Z_STRLEN_P(tmp_curr->value);
 #if PHP_MAJOR_VERSION >= 7
-                        strcpy(str, Z_STRVAL_P(tmp_curr->value));
-                        zend_string_release(ZEND_STR(tmp_curr->value));
-                        ZEND_STR(tmp_curr->value) = zend_string_init(str, strlen(str), 0);
+							origptr = Z_STR_P(tmp_curr->value)->val;
+#else
+							origptr = Z_STRVAL_P(tmp_curr->value);
 #endif
-#if PHP_MAJOR_VERSION < 7
-						tmp_curr->value->value.str.val[tmp_curr->bind_indicator] = 0;
-#ifdef PASE /* i5/OS both INOUT and OUT (trim) */
-						if (tmp_curr->param_type == DB2_PARAM_INOUT || tmp_curr->param_type == DB2_PARAM_OUT) {
-							int ib = tmp_curr->bind_indicator-1;
-							for (;ib && Z_STRVAL_P(tmp_curr->value)[ib] == 0x20 || Z_STRVAL_P(tmp_curr->value)[ib] == 0x40 || Z_STRVAL_P(tmp_curr->value)[ib] == 0x00; ib--){
-								Z_STRVAL_P(tmp_curr->value)[ib] = '\0';
+							if(origlen < tmp_curr->bind_indicator 
+							|| tmp_curr->bind_indicator == SQL_NO_TOTAL
+							|| tmp_curr->bind_indicator == SQL_NTS
+							|| tmp_curr->bind_indicator < 0) 
+							{
+								tmp_curr->bind_indicator = origlen;
+							}
+							bindlen = tmp_curr->bind_indicator;
+							origptr[bindlen] = '\0';
+							Z_STRLEN_P(tmp_curr->value) = bindlen;
+							/* trim */
+							for (;bindlen && origptr[bindlen] == 0x20 || origptr[bindlen] == 0x00; bindlen--) {
+								Z_STRLEN_P(tmp_curr->value) = bindlen;
+								origptr[bindlen] = '\0';
 							}
 						}
-#else
-						if (tmp_curr->param_type == DB2_PARAM_INOUT) {
-							int ib = tmp_curr->bind_indicator-1;
-							for (;ib && Z_STRVAL_P(tmp_curr->value)[ib] == 0x20; ib--){
-								Z_STRVAL_P(tmp_curr->value)[ib] = '\0';
-							}
-						}
-#endif
-						Z_STRLEN_P(tmp_curr->value) = strlen(Z_STRVAL_P(tmp_curr->value));
-#endif
-					}
-					else if (ZEND_Z_TYPE_P( tmp_curr->value ) == IS_STRING
-						&& tmp_curr->bind_indicator == SQL_NULL_DATA) {
-						if(Z_STRVAL_P(tmp_curr->value) != NULL || Z_STRLEN_P(tmp_curr->value) != 0) {
-							efree(ZEND_STR(tmp_curr->value));
-						}
-						ZEND_Z_TYPE_P(tmp_curr->value) = IS_NULL;
 					}
 #if PHP_MAJOR_VERSION >= 7
-                    else if (ZEND_Z_TYPE_P(tmp_curr->value) == IS_LONG || ZEND_Z_TYPE_P(tmp_curr->value) == IS_TRUE|| ZEND_Z_TYPE_P(tmp_curr->value) == IS_FALSE) {
+					else if (ZEND_Z_TYPE_P(tmp_curr->value) == IS_LONG || ZEND_Z_TYPE_P(tmp_curr->value) == IS_TRUE|| ZEND_Z_TYPE_P(tmp_curr->value) == IS_FALSE) {
 #else
-                        else if (ZEND_Z_TYPE_P(tmp_curr->value) == IS_LONG || ZEND_Z_TYPE_P(tmp_curr->value) == IS_BOOL) {
+					else if (ZEND_Z_TYPE_P(tmp_curr->value) == IS_LONG || ZEND_Z_TYPE_P(tmp_curr->value) == IS_BOOL) {
 #endif
 						/* bind in the value of long_value instead */
 						tmp_curr->value->value.lval = (long)tmp_curr->long_value;
 					}
-					/* cant use zend_hash_update because the symbol need not exist. It might need to be created */
-#if PHP_MAJOR_VERSION >= 7
-					ZEND_Z_SET_SYMBOL(&EG(ACTIVE_SYMBOL_TABLE), tmp_curr->varname, tmp_curr->value);
-#else
-					ZEND_SET_SYMBOL(EG(ACTIVE_SYMBOL_TABLE), tmp_curr->varname, tmp_curr->value);
-#endif
-
+					_php_db2_set_symbol(tmp_curr->varname, tmp_curr->value);
 				default:
 					break;
 			}
 			tmp_curr = tmp_curr->next;
 		}
 	}
-
 	if ( rc != SQL_ERROR ) {
 		RETURN_TRUE;
 	}
 }
 /* }}} */
+
 
 /* {{{ proto string db2_conn_errormsg([resource connection])
 Returns a string containing the last connection error message */
@@ -5322,7 +5367,9 @@ PHP_FUNCTION(db2_next_result)
 		new_stmt_res->row_data = NULL;
 		new_stmt_res->hstmt = new_hstmt;
 		new_stmt_res->hdbc = stmt_res->hdbc;
-
+#ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
+		_php_db2_incr_stmt_struct(stmt_res);
+#endif /* PASE */
 		ZEND_REGISTER_RESOURCE_NEW(return_value, new_stmt_res, le_stmt_struct);
 	} else {
 		RETURN_FALSE;
@@ -5617,9 +5664,9 @@ PHP_FUNCTION(db2_field_type)
 		_php_db2_clear_exec_many_err_cache(stmt_res);
 	}
 #if PHP_MAJOR_VERSION >= 7
-    if ( ZEND_Z_TYPE_P(column)==IS_FALSE ) {
-        RETURN_FALSE;
-    }
+	if ( ZEND_Z_TYPE_P(column)==IS_FALSE ) {
+		RETURN_FALSE;
+	}
 #endif
 	if ( ZEND_Z_TYPE_P(column)==IS_LONG ) {
 		col = Z_LVAL_P(column);
@@ -6205,9 +6252,9 @@ static void _php_db2_bind_fetch_helper(INTERNAL_FUNCTION_PARAMETERS, int op)
 	int argc = ZEND_NUM_ARGS();
 	int stmt_id = -1, rc = -1, i;
 #if PHP_MAJOR_VERSION >= 7
-    zend_long row_number=-1;
+	zend_long row_number=-1;
 #else
-    long row_number=-1;
+	long row_number=-1;
 #endif
 	zval *stmt = NULL;
 	stmt_handle *stmt_res = NULL;
@@ -6570,9 +6617,9 @@ PHP_FUNCTION(db2_fetch_row)
 	int argc = ZEND_NUM_ARGS();
 	int stmt_id = -1;
 #if PHP_MAJOR_VERSION >= 7
-    zend_long row_number;
+	zend_long row_number;
 #else
-    long row_number;
+	long row_number;
 #endif
 	zval *stmt = NULL;
 	stmt_handle* stmt_res = NULL;
@@ -6674,9 +6721,9 @@ PHP_FUNCTION(db2_set_option)
 	conn_handle *conn_res;
 	int rc = 0;
 #if PHP_MAJOR_VERSION >= 7
-    zend_long type;
+	zend_long type;
 #else
-    long type;
+	long type;
 #endif
 
 	if (zend_parse_parameters(argc TSRMLS_CC, "ral", &resc, &options, &type) == FAILURE) {
@@ -6834,10 +6881,10 @@ PHP_FUNCTION(db2_server_info)
 			zval *karray, zv;
 
 #if PHP_MAJOR_VERSION >= 7
-            ZVAL_LONG(&zv, 0);
-            karray = &zv;
+			ZVAL_LONG(&zv, 0);
+			karray = &zv;
 #else
-            MAKE_STD_ZVAL(karray);
+			MAKE_STD_ZVAL(karray);
 #endif
 
 			array_init(karray);
@@ -6899,10 +6946,10 @@ PHP_FUNCTION(db2_server_info)
 			zval *array, zv;
 
 #if PHP_MAJOR_VERSION >= 7
-            ZVAL_LONG(&zv, 0);
-            array = &zv;
+			ZVAL_LONG(&zv, 0);
+			array = &zv;
 #else
-            MAKE_STD_ZVAL(array);
+			MAKE_STD_ZVAL(array);
 #endif
 
 			array_init(array);
@@ -7285,9 +7332,9 @@ PHP_FUNCTION(db2_escape_string)
 	char *end;		 
 	int new_length;	 
 #if PHP_MAJOR_VERSION >= 7
-    size_t length;	 
+	size_t length;	 
 #else
-    int length;	 
+	int length;	 
 #endif
 
 	if (zend_parse_parameters(argc TSRMLS_CC, "s", &str, &length) == FAILURE) {	 
@@ -7341,9 +7388,9 @@ PHP_FUNCTION(db2_lob_read)
 	int rc, i = 0;
 	SQLINTEGER out_length;
 #if PHP_MAJOR_VERSION >= 7
-   	zend_long length=BUFSIZ, colnum = 1;
+	zend_long length=BUFSIZ, colnum = 1;
 #else
-   	long length=BUFSIZ, colnum = 1;
+	long length=BUFSIZ, colnum = 1;
 #endif
 	void *out_ptr = NULL;
 
@@ -7629,10 +7676,10 @@ PHP_FUNCTION( db2_execute_many )
 	SQLSMALLINT nullable;
 	SQLSMALLINT *array_data_type;
 #if PHP_MAJOR_VERSION >= 7
-    zend_string *key;
-    zend_string *key1,*key2,*key3,*key4,*key5;
-    zval *zv = NULL, *zv1 = NULL,*zv2,*zv3,*zv4,*zv5;
-    ulong num_key,num_key1,num_key2,num_key3,num_key4,num_key5;
+	zend_string *key;
+	zend_string *key1,*key2,*key3,*key4,*key5;
+	zval *zv = NULL, *zv1 = NULL,*zv2,*zv3,*zv4,*zv5;
+	ulong num_key,num_key1,num_key2,num_key3,num_key4,num_key5;
 #endif
 	
 	/* These are used to loop over the param cache*/
@@ -7684,20 +7731,17 @@ PHP_FUNCTION( db2_execute_many )
 	head_error_list->next = NULL;
 	if ( numOfRows > 0 ) {
 #if PHP_MAJOR_VERSION >= 7
-        i = -1;
-        ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(params), num_key, key, zv) {
-            i++;
+		i = -1;
+		ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(params), num_key, key, zv) {
+			i++;
 			param_node *curr = NULL;
 			zval **params_array = NULL;
 			error[0] = '\0';
-            if( zv != NULL ) 
-            {
-                params_array = &zv;
-            }
-            else
-            {
-                rc = FAILURE;
-            }
+			if( zv != NULL ) {
+				params_array = &zv;
+			} else {
+				rc = FAILURE;
+			}
 			if ( rc != SUCCESS ) {
 				sprintf(error, "Value parameters array %d is not correct", i + 1);
 				_build_client_err_list(head_error_list, error);
@@ -7719,23 +7763,19 @@ PHP_FUNCTION( db2_execute_many )
 				err_count++;
 				continue;
 			}
-
 			/* Bind values parameters */
 			curr = stmt_res->head_cache_list;
-            ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(*params_array), num_key1, key1, zv1) {
-                if(curr == NULL)
-                {
-                    break;
-                }
-                if(zv1 != NULL)
-                    data = &zv1;
+			ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(*params_array), num_key1, key1, zv1) {
+				if(curr == NULL) {
+					break;
+				}
+				if(zv1 != NULL) data = &zv1;
 				if ( data == NULL ) {
 					sprintf(error, "NULL value passed in value parameters %d", i + 1);
 					_build_client_err_list(head_error_list, error);
 					err_count++;
 					break;
 				}
-				
 				if ( chaining_start ) {
 					if ( ( ZEND_Z_TYPE_PP(data) != IS_NULL ) && ( array_data_type[curr->param_num -1] != ZEND_Z_TYPE_PP(data) ) ) {
 						sprintf(error, "Value parameters array %d is not homogeneous with privious parameters array", i + 1);
@@ -7749,20 +7789,19 @@ PHP_FUNCTION( db2_execute_many )
 						j++;
 					} else {
 						int tmp_j = 0;
-                        ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(params), num_key2, key2, zv2) {
-                            if(zv2 != NULL)
-                                params_array = &zv2;
-                            ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(*params_array), num_key3, key3, zv3) {
-							if ( tmp_j <= j ) {
-                                tmp_j++;
-                                continue;
-							}
-                            if (zv3 != NULL)
-                            {
-                                data = &zv3;
-                                break;
-                            }
-                            }ZEND_HASH_FOREACH_END();
+						ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(params), num_key2, key2, zv2) {
+							if(zv2 != NULL) params_array = &zv2;
+							ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(*params_array), num_key3, key3, zv3) {
+								if ( tmp_j <= j ) {
+									tmp_j++;
+									continue;
+								}
+								if (zv3 != NULL)
+								{
+									data = &zv3;
+									break;
+								}
+							} ZEND_HASH_FOREACH_END();
 							if ( ( data != NULL ) && ( ZEND_Z_TYPE_PP(data) != IS_NULL ) ) {
 								array_data_type[curr->param_num -1] = ZEND_Z_TYPE_PP(data);
 								j++;
@@ -7770,38 +7809,34 @@ PHP_FUNCTION( db2_execute_many )
 							} else {
 								continue;
 							}
-						}ZEND_HASH_FOREACH_END();
+						} ZEND_HASH_FOREACH_END();
 						if ( array_data_type[curr->param_num -1] == -1 ) {
 							array_data_type[curr->param_num -1] = IS_NULL;
 						}
-                         ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(params), num_key4, key4, zv4) {
-
-                             if(zv4 != NULL)
-                                 params_array = &zv4;
-                             ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(*params_array), num_key5, key5, zv5) {
-						if ( tmp_j < j ) {
-                            tmp_j++;
-                            continue;
-						}
-                        if(zv5 != NULL)
-                        {
-                            data = &zv5;
-                            break;
-                        }
-                             }ZEND_HASH_FOREACH_END();
-                             break;
-                         }ZEND_HASH_FOREACH_END();
+						ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(params), num_key4, key4, zv4) {
+							if(zv4 != NULL) params_array = &zv4;
+							ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(*params_array), num_key5, key5, zv5) {
+								if ( tmp_j < j ) {
+									tmp_j++;
+									continue;
+								}
+								if(zv5 != NULL) {
+									data = &zv5;
+									break;
+								}
+							} ZEND_HASH_FOREACH_END();
+							break;
+						} ZEND_HASH_FOREACH_END();
 					}
 				}
-
 				curr->data_type = data_type[curr->param_num -1];
 				if ( ZEND_Z_TYPE_PP(data) != IS_NULL ) {
 					rc = _php_db2_bind_data(stmt_res, curr, data TSRMLS_CC);
 				} else {
 					SQLSMALLINT valueType = 0;
 					switch ( array_data_type[curr->param_num -1] ) {
-                        case IS_TRUE:
-                        case IS_FALSE:
+						case IS_TRUE:
+						case IS_FALSE:
 						case IS_LONG:
 							if ( curr->data_type == SQL_BIGINT ) {
 								valueType = SQL_C_CHAR;
@@ -7843,7 +7878,7 @@ PHP_FUNCTION( db2_execute_many )
 					break;
 				}
 				curr = curr->next;
-			}ZEND_HASH_FOREACH_END();
+			} ZEND_HASH_FOREACH_END();
 	 		if ( !chaining_start && (error[0] == '\0' ) ) {
 				/* Set statement attribute SQL_ATTR_CHAINING_BEGIN */
 				rc = _ibm_db_chaining_flag(stmt_res, SQL_ATTR_CHAINING_BEGIN, NULL, 0 TSRMLS_CC);
@@ -7861,11 +7896,10 @@ PHP_FUNCTION( db2_execute_many )
 					RETURN_FALSE;
 				}
 			}
-
 			if ( error[0] == '\0' ) {
 				rc = SQLExecute((SQLHSTMT)stmt_res->hstmt);
 			}
-		}ZEND_HASH_FOREACH_END();
+		} ZEND_HASH_FOREACH_END();
 #else
 		for ( i = 0; i < numOfRows; i++ ) {
 			param_node *curr = NULL;

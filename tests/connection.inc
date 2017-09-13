@@ -1,23 +1,21 @@
 <?php
 
-$database = 'sample';
-$user = 'db2inst1';
-$password = 'password';
-$hostname = 'localhost';
-$port = 60000;
+$database = '*LOCAL';
+$user = 'DB2';
+$password = 'PWD';
+$hostname = 'hotellnx122.torolab.ibm.com';
+$port = 31904;
 $url = 'no url';
-$switch_user = '';
-$switch_password = '';
+$switch_user = 'DB2TWO';
+$switch_password = 'PWD';
+$chroot_dir = '/QOpenSys/zend7';
 
 $db = $database;
 $username = $user;
 
 // IBM i (PASE)
 $myos = PHP_OS;
-if (strpos('x'.$myos,'AIX') > 0) {
-  $myos = `uname`;
-}
-if (strpos($myos,'400') > 0) {
+if (strpos("  ".$myos,'400') > 0 || strpos(" ".$myos,'AIX') > 0) {
   if (strpos($_SERVER["PHP_SELF"],"V6") === false) {
     require_once('skipif.PASE');
     for ($entry = strtok($PASE_ALT_TEST,"\n"); $entry; $entry = strtok("\n")) {
@@ -45,3 +43,4 @@ if (!$prepconn) die('skip');
 db2_close($prepconn);
 
 ?>
+

@@ -1,0 +1,15 @@
+#!/bin/bash
+export IBM_DB_HOME=/usr
+export PHP_HOME=/usr/local/zendsvr6
+export PASE_TOOLS_HOME=/QOpenSys/usr
+export AIX_TOOLS_HOME=/usr/local
+export PATH=$PHP_HOME/bin:$PASE_TOOLS_HOME/bin:$AIX_TOOLS_HOME/bin:$PATH
+export LIBPATH=$PHP_HOME/lib:$PASE_TOOLS_HOME/lib:$AIX_TOOLS_HOME/lib
+export CC=gcc
+export CFLAGS="-gxcoff -DPASE -I=.:$PHP_HOME/php/include"
+export CCHOST=powerpc-ibm-aix6.1.0.0
+#phpize
+#./configure --build=$CCHOST --host=$CCHOST --target=$CCHOST
+make
+make install
+cp /usr/local/zendsvr6/lib/php/20131226/* /usr/local/zendsvr6/lib/php_extensions/.
