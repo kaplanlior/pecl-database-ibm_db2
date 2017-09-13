@@ -232,7 +232,7 @@ typedef struct _param_cache_node {
 typedef struct _conn_handle_struct {
 	SQLHANDLE henv;
 	SQLHANDLE hdbc;
-	long auto_commit;
+	SQLINTEGER auto_commit;
 	long c_bin_mode;
 	long c_case_mode;
 	long c_cursor_type;
@@ -470,10 +470,6 @@ static void _php_db2_errorlog(const char * format, ...)
 }
 #endif /* PASE */
 
-/*
- * @#$$#! stuff for php 7
- */
-
 /* {{{ static int _php_db2_hash_find_ind(const char * varname, int varlen, zval ***bind_data)
 	*/
 static int _php_db2_hash_find_ind(char * varname, int varlen, zval **temp, zval ***bind_data, zend_array ** symbol_table_used)
@@ -483,10 +479,15 @@ static int _php_db2_hash_find_ind(char * varname, int varlen, zval **temp, zval 
 
 	/* Fetch data from symbol table (local scope) */
 #if PHP_MAJOR_VERSION >= 7
-    symbol_table_local = zend_rebuild_symbol_table();
+	/* if (zend_hash_num_elements(&EG(symbol_table)) == 0) { (ADC undo Zend change) */
+	    symbol_table_local = zend_rebuild_symbol_table();
+	/* } (ADC undo Zend change) */
+    
 	*temp =  zend_hash_str_find_ind(symbol_table_local, varname, varlen );
+	/* *temp = zend_hash_str_find_ind(&EG(symbol_table), varname, varlen); (ADC undo Zend change)*/
 	if (*temp != NULL) {
 		*bind_data = temp;
+		/* *symbol_table_used = &EG(symbol_table); (ADC undo Zend change) */
 		*symbol_table_used = symbol_table_local;
 		rc = SUCCESS;
 	}
@@ -496,7 +497,7 @@ static int _php_db2_hash_find_ind(char * varname, int varlen, zval **temp, zval 
 #if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 3
 		/* ADC - PHP changed general behavior 5.3+ */
 		if (!EG(active_symbol_table)) {
-    		zend_rebuild_symbol_table(TSRMLS_C); /* rebuild EG(active_symbol_table) */
+		    zend_rebuild_symbol_table(TSRMLS_C); /* rebuild EG(active_symbol_table) */
 		}
 #endif
 		rc = zend_hash_find(EG(active_symbol_table), varname, varlen+1, (void **) bind_data );
@@ -539,14 +540,8 @@ static void _php_db2_set_symbol(char * varname, zval *var)
 	zend_array * symbol_table_used; /* php 5.3+, php 7+ */
 	if (_php_db2_hash_find_ind(varname, strlen(varname), &temp, &bind_data, &symbol_table_used) != FAILURE ) {
 #if PHP_MAJOR_VERSION >= 7
-		zval *orig_var = temp;
-		if (orig_var != NULL) {
-			zval_dtor(orig_var);
-			*orig_var = *var;
-			efree(var);
-		} else {
-			zend_hash_str_update(symbol_table_used, varname, strlen(varname), var);
-		}
+		zval_ptr_dtor(temp);
+		ZVAL_COPY_VALUE(temp, var);		
 #else
 		ZEND_SET_SYMBOL(symbol_table_used, varname, var);
 #endif
@@ -2046,7 +2041,7 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 */
 static int _php_db2_parse_options ( zval *options, int type, void *handle TSRMLS_DC )
 {
-	int numOpts = 0, i = 0;
+	int i = 0;
 	ulong num_idx;
 	char *opt_key; /* Holds the Option Index Key */
 	zval **data;
@@ -2055,13 +2050,12 @@ static int _php_db2_parse_options ( zval *options, int type, void *handle TSRMLS
 	zend_string *key = NULL;
 	zval *val = NULL;
 	zend_ulong num_key;
+#else
+	int numOpts = 0;
 #endif
 
 	if ( options != NULL) {
 #if PHP_MAJOR_VERSION >= 7
-		numOpts = zend_hash_num_elements(Z_ARRVAL_P(options));
-		zend_hash_internal_pointer_reset(Z_ARRVAL_P(options));
-
 		ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(options), num_key, key, val) {
 			if (key) {
 				data = &val;
@@ -2507,7 +2501,7 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 	char *uid = NULL;
 	char *password = NULL;
 	int argc = ZEND_NUM_ARGS();
-	zval *options = NULL, newEntrydata;
+	zval *options = NULL;
 	int rc = 0;
 	SQLINTEGER conn_alive;
 	conn_handle *conn_res = *pconn_res;
@@ -2521,10 +2515,10 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 	size_t uid_len;
 	size_t password_len;
 	zend_string *key = NULL;
-	zval *temp = NULL;
-	ZEND_RESOURCE *newEntry;
+	zend_resource *temp = NULL;	
 #else
 	ZEND_RESOURCE newEntry;
+	zval newEntrydata;
 	int database_len;
 	int uid_len;
 	int password_len;
@@ -2567,13 +2561,14 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 
 			sprintf(hKey, "__db2_%s.%s.%s", uid, database, password);
 #if PHP_MAJOR_VERSION >= 7
-			temp = zend_hash_str_find_ind(&EG(persistent_list), hKey, hKeyLen );
-			if ( temp != NULL ) {
-				entry = Z_RES_P(temp);
+			temp = zend_hash_str_find_ptr(&EG(persistent_list), hKey, hKeyLen );
+			if ( temp && temp->type == le_pconn_struct) {	
+				conn_res = *pconn_res = (conn_handle *)temp->ptr;
 #else
 			if (zend_hash_find(&EG(persistent_list), hKey, hKeyLen, (void **) &entry) == SUCCESS) {
-#endif
 				conn_res = *pconn_res = (conn_handle *) entry->ptr;
+#endif
+				
 #ifndef PASE /* IBM i not support ping (DB2 for i not a daemon-style database, no port, etc.) */
 				/* Need to reinitialize connection? */
 				rc = SQLGetConnectAttr(conn_res->hdbc, SQL_ATTR_PING_DB, (SQLPOINTER)&conn_alive, 0, NULL);
@@ -2638,11 +2633,6 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 				}
 				/* 1.9.7 - IBM i fully close (at least try) */
 				if (!conn_alive) {
-/*
-					if (IBM_DB2_G(i5_log_verbose) > 0) {
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Reset persistent connection");
-					}
- */
 					/* close sets conn_res->flag_pconnect=9 */
 					_php_db2_close_now(conn_res, 1 TSRMLS_CC);
 				}
@@ -2761,7 +2751,7 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 			rc = SQLSetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_CONN_SORT_SEQUENCE, (SQLPOINTER)attr, SQL_IS_INTEGER);
 		}
 		/* 1.9.7 - IBM i consultant request switch subsystem QSQSRVR job (customer workload issues) */
-		if (IBM_DB2_G(i5_servermode_subsystem) && IBM_DB2_G(i5_ignore_userid) < 1) {
+		if (IBM_DB2_G(i5_servermode_subsystem) && strlen(IBM_DB2_G(i5_servermode_subsystem)) > 0 && IBM_DB2_G(i5_ignore_userid) < 1) {
 			rc = SQLSetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_SERVERMODE_SUBSYSTEM, (SQLPOINTER) IBM_DB2_G(i5_servermode_subsystem), SQL_NTS);
 		}
 #endif /* PASE */
@@ -2891,13 +2881,11 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 		if (! reused && rc == SQL_SUCCESS) {
 			/* If we created a new persistent connection, add it to the persistent_list */
 #if PHP_MAJOR_VERSION >= 7
-			newEntry = (ZEND_RESOURCE *)ecalloc(1,sizeof(ZEND_RESOURCE));
-			memset(newEntry, 0, sizeof(newEntry));
-			memset(&newEntrydata, 0, sizeof(newEntrydata));
-			ZEND_Z_TYPE_RESOURCE(*newEntry) = le_pconn_struct;
-			newEntry->ptr = conn_res;
-			newEntrydata.value.res = newEntry;
-			if (zend_hash_str_update(&EG(persistent_list), hKey, hKeyLen, &newEntrydata) == NULL) {
+			zend_resource newPersistentRes;
+			newPersistentRes.type = le_pconn_struct;
+			newPersistentRes.ptr = conn_res;
+			GC_REFCOUNT(&newPersistentRes) = 1;
+			if (zend_hash_str_update_mem(&EG(persistent_list), hKey, hKeyLen, &newPersistentRes, sizeof(newPersistentRes)) == NULL) {
 #else
 			memset(&newEntry, 0, sizeof(newEntry));
 			Z_TYPE(newEntry) = le_pconn_struct;
@@ -4533,8 +4521,9 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 	if( curr->value != 0 && curr->param_type != DB2_PARAM_OUT && curr->param_type != DB2_PARAM_INOUT )
 		ZEND_ZVAL_PTR_DTOR(curr->value);
 #if PHP_MAJOR_VERSION >= 7
-	if(curr->value) efree(curr->value);
-	curr->value = (zval *)emalloc(sizeof(zval));
+	if (!curr->value) {
+	    curr->value = (zval *)emalloc(sizeof(zval));
+	}
 	ZVAL_LONG(curr->value, 0);
 #else
 	MAKE_STD_ZVAL(curr->value);
@@ -4635,12 +4624,12 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 	}
 
 	/* copy data over from bind_data */
-	*(curr->value) = **bind_data;
 #if PHP_MAJOR_VERSION <7
+	*(curr->value) = **bind_data;
 	zval_copy_ctor(curr->value);
 	INIT_PZVAL(curr->value);
 #else
-	zval_copy_ctor(curr->value);
+	ZVAL_COPY(curr->value, *bind_data);
 #endif
 	/* Have to use SQLBindFileToParam if PARAM is type DB2_PARAM_FILE */
 	if ( curr->param_type == DB2_PARAM_FILE) {
@@ -4914,7 +4903,11 @@ static void _free_param_cache_list(stmt_handle *stmt_res) {
 			if ( ZEND_Z_TYPE_P(prev_ptr->value) == IS_STRING ) {
 				if((ZEND_STR(prev_ptr->value)) != NULL || Z_STRLEN_P(prev_ptr->value) != 0) {
 					if (!IS_INTERNED((ZEND_STR(prev_ptr->value)))) {
+#if PHP_MAJOR_VERSION < 7
 						efree((ZEND_STR(prev_ptr->value)));
+#else
+						zend_string_release((ZEND_STR(prev_ptr->value)));
+#endif
 					}
 				}
 			}
@@ -4923,6 +4916,7 @@ static void _free_param_cache_list(stmt_handle *stmt_res) {
 				efree(prev_ptr->value);
 			}
 		}
+
 		efree(prev_ptr);
 
 		prev_ptr = curr_ptr;
@@ -4981,6 +4975,12 @@ PHP_FUNCTION(db2_execute)
 	if (!stmt) {
 		return;
 	}
+
+#if PHP_MAJOR_VERSION >= 7
+	if (parameters_array && Z_TYPE_P(parameters_array) == IS_ARRAY && (Z_TYPE_FLAGS_P(parameters_array) & IS_TYPE_IMMUTABLE)) {
+		SEPARATE_ARRAY(parameters_array);
+	}
+#endif
 
 	ZEND_FETCH_RESOURCE_NEW(stmt_res, stmt_handle*, &stmt, stmt_id, "Statement Resource", le_stmt_struct);
 	_php_db2_clear_exec_many_err_cache(stmt_res);
@@ -5135,7 +5135,11 @@ PHP_FUNCTION(db2_execute)
 					if (ZEND_Z_TYPE_P( tmp_curr->value ) == IS_STRING) {
 						if (tmp_curr->bind_indicator == SQL_NULL_DATA) {
 							if(Z_STRVAL_P(tmp_curr->value) != NULL || Z_STRLEN_P(tmp_curr->value) != 0) {
+#if PHP_MAJOR_VERSION < 7
 								efree(ZEND_STR(tmp_curr->value));
+#else
+								zval_ptr_dtor(tmp_curr->value);								
+#endif
 							}
 							ZEND_Z_TYPE_P(tmp_curr->value) = IS_NULL;
 						} else {
@@ -5144,11 +5148,8 @@ PHP_FUNCTION(db2_execute)
 								then correct the length of the corresponding php variable
 							*/
 							origlen = Z_STRLEN_P(tmp_curr->value);
-#if PHP_MAJOR_VERSION >= 7
-							origptr = Z_STR_P(tmp_curr->value)->val;
-#else
 							origptr = Z_STRVAL_P(tmp_curr->value);
-#endif
+
 							if(origlen < tmp_curr->bind_indicator 
 							|| tmp_curr->bind_indicator == SQL_NO_TOTAL
 							|| tmp_curr->bind_indicator == SQL_NTS
@@ -7472,37 +7473,38 @@ PHP_FUNCTION(db2_get_option)
 		}
 
 		if (option) {
+			SQLINTEGER val_len;
 			if (!STRCASECMP(option, "userid")) {
 				value = ecalloc(1, USERID_LEN + 1);
-				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_USERID, (SQLPOINTER)value, USERID_LEN, NULL);
+				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_USERID, (SQLPOINTER)value, USERID_LEN, &val_len);
 				if ( rc == SQL_ERROR ) {
 					_php_db2_check_sql_errors((SQLHDBC)conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 					RETURN_FALSE;
 				}
 			} else if (!STRCASECMP(option, "acctstr")) {
 				value = ecalloc(1, ACCTSTR_LEN + 1);
-				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_ACCTSTR, (SQLPOINTER)value, ACCTSTR_LEN, NULL);
+				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_ACCTSTR, (SQLPOINTER)value, ACCTSTR_LEN, &val_len);
 				if ( rc == SQL_ERROR ) {
 					_php_db2_check_sql_errors((SQLHDBC)conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 					RETURN_FALSE;
 				}
 			} else if (!STRCASECMP(option, "applname")) {
 				value = ecalloc(1, APPLNAME_LEN + 1);
-				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_APPLNAME, (SQLPOINTER)value, APPLNAME_LEN, NULL);
+				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_APPLNAME, (SQLPOINTER)value, APPLNAME_LEN, &val_len);
 				if ( rc == SQL_ERROR ) {
 					_php_db2_check_sql_errors((SQLHDBC)conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 					RETURN_FALSE;
 				}
 			} else if (!STRCASECMP(option, "wrkstnname")) {
 				value = ecalloc(1, WRKSTNNAME_LEN + 1);
-				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_WRKSTNNAME, (SQLPOINTER)value, WRKSTNNAME_LEN, NULL);
+				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_INFO_WRKSTNNAME, (SQLPOINTER)value, WRKSTNNAME_LEN, &val_len);
 				if ( rc == SQL_ERROR ) {
 					_php_db2_check_sql_errors((SQLHDBC)conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 					RETURN_FALSE;
 				}
 #ifndef PASE  /* i5/OS no support yet */
 			} else if(!STRCASECMP(option, "trustedcontext")) {
-				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_USE_TRUSTED_CONTEXT, (SQLPOINTER)&val, 0, NULL);
+				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_USE_TRUSTED_CONTEXT, (SQLPOINTER)&val, 0, &val_len);
 				if ( rc == SQL_ERROR ) {
 					_php_db2_check_sql_errors((SQLHDBC)conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 					RETURN_FALSE;
@@ -7514,7 +7516,7 @@ PHP_FUNCTION(db2_get_option)
 				}
 			} else if (!STRCASECMP(option, "trusted_user")) {
 				value = ecalloc(1, USERID_LEN + 1);
-				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_TRUSTED_CONTEXT_USERID, (SQLPOINTER)value, USERID_LEN, NULL);
+				rc = SQLGetConnectAttr((SQLHDBC)conn_res->hdbc, SQL_ATTR_TRUSTED_CONTEXT_USERID, (SQLPOINTER)value, USERID_LEN, &val_len);
 				if ( rc == SQL_ERROR ) {
 					_php_db2_check_sql_errors((SQLHDBC)conn_res->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
 					RETURN_FALSE;
@@ -7524,7 +7526,7 @@ PHP_FUNCTION(db2_get_option)
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Incorrect option string passed in");
 				RETURN_FALSE;
 			}
-			ZEND_RETURN_STRING(value, 0);
+			ZEND_RETURN_STRINGL(value, val_len, 0);
 		} else {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Supplied parameter is invalid");
 			RETURN_FALSE;
@@ -7700,6 +7702,12 @@ PHP_FUNCTION( db2_execute_many )
 	if ( !stmt ) {
 		return;	
 	}
+
+#if PHP_MAJOR_VERSION >= 7
+	if (params && Z_TYPE_P(params) == IS_ARRAY && (Z_TYPE_FLAGS_P(params) & IS_TYPE_IMMUTABLE)) {
+		SEPARATE_ARRAY(params);
+	}
+#endif
 
 	ZEND_FETCH_RESOURCE_NEW(stmt_res, stmt_handle*, &stmt, stmt_id, "Statement Resource", le_stmt_struct);
 	_php_db2_clear_exec_many_err_cache(stmt_res);
