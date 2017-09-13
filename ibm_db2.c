@@ -413,44 +413,44 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("ibm_db2.binmode", "1", PHP_INI_ALL, ONUPDATEFUNCTION,
 		bin_mode, zend_ibm_db2_globals, ibm_db2_globals)
 	/* orig  - IBM i legacy CRTLIB containers fail under commit control (isolation *NONE) */
-	STD_PHP_INI_BOOLEAN("ibm_db2.i5_allow_commit", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_BOOLEAN("ibm_db2.i5_allow_commit", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_allow_commit, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i consultant request php.ini set system naming (customer *LIBL issues) */
-	STD_PHP_INI_ENTRY("ibm_db2.i5_sys_naming", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_ENTRY("ibm_db2.i5_sys_naming", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_sys_naming, zend_ibm_db2_globals, ibm_db2_globals)
 #ifdef PASE /* IBM i ibm_db2.ini options */
 	/* orig  - IBM i 6x space for CCSID<>UTF-8 convert  (DBCS customer issue) */
-	STD_PHP_INI_BOOLEAN("ibm_db2.i5_dbcs_alloc", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_BOOLEAN("ibm_db2.i5_dbcs_alloc", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_dbcs_alloc, zend_ibm_db2_globals, ibm_db2_globals)
 	/* orig  - IBM i force all connect to pconnect (operator issue) */
-	STD_PHP_INI_BOOLEAN("ibm_db2.i5_all_pconnect", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_BOOLEAN("ibm_db2.i5_all_pconnect", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_all_pconnect, zend_ibm_db2_globals, ibm_db2_globals)
 	/* orig  - IBM i ignore user id enables no-QSQSRVR job (custom site request) */
-	STD_PHP_INI_BOOLEAN("ibm_db2.i5_ignore_userid", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_BOOLEAN("ibm_db2.i5_ignore_userid", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_ignore_userid, zend_ibm_db2_globals, ibm_db2_globals)
 	/* orig  - IBM i SQL_ATTR_JOB_SORT_SEQUENCE (customer request DB2 PTF) */
-	STD_PHP_INI_BOOLEAN("ibm_db2.i5_job_sort", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_BOOLEAN("ibm_db2.i5_job_sort", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_job_sort, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i force UTF-8 CCSID (NLS customer issues) */
 	STD_PHP_INI_ENTRY("ibm_db2.i5_override_ccsid", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_override_ccsid, zend_ibm_db2_globals, ibm_db2_globals) 
 	/* 1.9.7 - IBM i security restrict blank db,uid,pwd (unless customer allow flag) */
-	STD_PHP_INI_ENTRY("ibm_db2.i5_blank_userid", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_ENTRY("ibm_db2.i5_blank_userid", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_blank_userid, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i consultant request log additional information into php.log */
-	STD_PHP_INI_ENTRY("ibm_db2.i5_log_verbose", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_ENTRY("ibm_db2.i5_log_verbose", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_log_verbose, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection) */
-	STD_PHP_INI_ENTRY("ibm_db2.i5_max_pconnect", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_ENTRY("ibm_db2.i5_max_pconnect", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_max_pconnect, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i remote persistent connection or long lived local (customer issue dead connection) */
-	STD_PHP_INI_ENTRY("ibm_db2.i5_check_pconnect", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_ENTRY("ibm_db2.i5_check_pconnect", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_check_pconnect, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i consultant request switch subsystem QSQSRVR job (customer workload issues) */
 	STD_PHP_INI_ENTRY("ibm_db2.i5_servermode_subsystem", NULL, PHP_INI_SYSTEM, OnUpdateString,
 		i5_servermode_subsystem, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
-	STD_PHP_INI_ENTRY("ibm_db2.i5_guard_profile", "-42", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_ENTRY("ibm_db2.i5_guard_profile", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_guard_profile, zend_ibm_db2_globals, ibm_db2_globals)
 #endif /* PASE */
 	PHP_INI_ENTRY("ibm_db2.instance_name", NULL, PHP_INI_SYSTEM, NULL)
@@ -516,13 +516,13 @@ static int _php_db2_hash_find_ind(char * varname, int varlen, zval **temp, zval 
 }
 /* }}} */
 
-/* {{{ static int _php_db2_hash_find_ind(const char * varname, int varlen, zval ***bind_data)
+/* {{{ static void _php_db2_set_symbol(char * varname, zval *var)
 	*/
 static void _php_db2_set_symbol(char * varname, zval *var)
 {
-	zval **bind_data;			/* Data value from symbol table */
-    zval *temp = NULL;
-	zend_array * symbol_table_used; /* php 5.3+, php 7+ */
+	zval **bind_data;		/* Data value from symbol table */
+	zval *temp = NULL;
+	zend_array * symbol_table_used;	/* php 5.3+, php 7+ */
 	if (_php_db2_hash_find_ind(varname, strlen(varname), &temp, &bind_data, &symbol_table_used) != FAILURE ) {
 #if PHP_MAJOR_VERSION >= 7
 		/* $mydata = 3;
@@ -535,8 +535,9 @@ static void _php_db2_set_symbol(char * varname, zval *var)
 				ZVAL_DEREF(*bind_data);
 				break;
 		}
-		zval_ptr_dtor(temp);
-		ZVAL_COPY_VALUE(temp, var);		
+		zval_ptr_dtor(*bind_data);
+		ZVAL_COPY_VALUE(*bind_data, var);
+		efree(var); /* 1.9.9-zs7 */
 #else
 		ZEND_SET_SYMBOL(symbol_table_used, varname, var);
 #endif
@@ -658,20 +659,20 @@ static void php_ibm_db2_init_globals(zend_ibm_db2_globals *ibm_db2_globals)
 	memset(ibm_db2_globals->__php_conn_err_state, 0, SQL_SQLSTATE_SIZE + 1);
 	memset(ibm_db2_globals->__php_stmt_err_state, 0, SQL_SQLSTATE_SIZE + 1);
 
-	ibm_db2_globals->i5_allow_commit = -42;		/* orig  - IBM i legacy CRTLIB containers fail under commit control (isolation *NONE) */
-	ibm_db2_globals->i5_sys_naming = -42;		/* 1.9.7 - IBM i + LUW 10.5 system naming on (*libl)/file.mbr */
+	ibm_db2_globals->i5_allow_commit = 0;	/* orig  - IBM i legacy CRTLIB containers fail under commit control (isolation *NONE) */
+	ibm_db2_globals->i5_sys_naming = 0;		/* 1.9.7 - IBM i + LUW 10.5 system naming on (*libl)/file.mbr */
 #ifdef PASE /* IBM i set default values (ibm_db2 bug long time) */
-	ibm_db2_globals->i5_dbcs_alloc = -42;		/* orig  - IBM i 6x space for CCSID<>UTF-8 convert  (DBCS customer issue) */
-	ibm_db2_globals->i5_all_pconnect = -42;		/* orig  - IBM i force all connect to pconnect (operator issue) */
-	ibm_db2_globals->i5_ignore_userid = -42;	/* orig  - IBM i ignore user id enables no-QSQSRVR job (custom site request) */
-	ibm_db2_globals->i5_job_sort = -42;			/* orig  - IBM i SQL_ATTR_JOB_SORT_SEQUENCE (customer request DB2 PTF) */
+	ibm_db2_globals->i5_dbcs_alloc = 0;		/* orig  - IBM i 6x space for CCSID<>UTF-8 convert  (DBCS customer issue) */
+	ibm_db2_globals->i5_all_pconnect = 0;	/* orig  - IBM i force all connect to pconnect (operator issue) */
+	ibm_db2_globals->i5_ignore_userid = 0;	/* orig  - IBM i ignore user id enables no-QSQSRVR job (custom site request) */
+	ibm_db2_globals->i5_job_sort = 0;		/* orig  - IBM i SQL_ATTR_JOB_SORT_SEQUENCE (customer request DB2 PTF) */
 	ibm_db2_globals->i5_override_ccsid = 0;	/* 1.9.7 - IBM i force UTF-8 CCSID (NLS customer issues) */
-	ibm_db2_globals->i5_blank_userid = -42;		/* 1.9.7 - IBM i security restrict blank db,uid,pwd (unless customer allow flag) */
-	ibm_db2_globals->i5_log_verbose = -42;		/* 1.9.7 - IBM i consultant request log additional information into php.log */
-	ibm_db2_globals->i5_max_pconnect = -42;		/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection) */
-	ibm_db2_globals->i5_check_pconnect = -42;	/* 1.9.7 - IBM i remote persistent connection or long lived local (customer issue dead connection) */
+	ibm_db2_globals->i5_blank_userid = 0;	/* 1.9.7 - IBM i security restrict blank db,uid,pwd (unless customer allow flag) */
+	ibm_db2_globals->i5_log_verbose = 0;	/* 1.9.7 - IBM i consultant request log additional information into php.log */
+	ibm_db2_globals->i5_max_pconnect = 0;	/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection) */
+	ibm_db2_globals->i5_check_pconnect = 0;	/* 1.9.7 - IBM i remote persistent connection or long lived local (customer issue dead connection) */
 	ibm_db2_globals->i5_servermode_subsystem = NULL; /* 1.9.7 - IBM i consultant request switch subsystem QSQSRVR job (customer workload issues) */
-	ibm_db2_globals->i5_guard_profile = -42;	/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
+	ibm_db2_globals->i5_guard_profile = 0;	/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
 #endif /* PASE */
 #ifdef PASE /* IBM i reuses handles. Connect close out of sync with le_stmt_struct dtor logic  */
 	memset(i5_handle_refcount,0,sizeof(i5_handle_refcount));
@@ -1059,6 +1060,7 @@ PHP_RSHUTDOWN_FUNCTION (ibm_db2)
 */
 PHP_MINFO_FUNCTION(ibm_db2)
 {
+	char opbuffer[32];
 	php_info_print_table_start();
 	php_info_print_table_header(2, "IBM DB2, Cloudscape and Apache Derby support", "enabled");
 	php_info_print_table_row(2, "Module release", PHP_IBM_DB2_VERSION);
@@ -1066,15 +1068,15 @@ PHP_MINFO_FUNCTION(ibm_db2)
 
 	switch (IBM_DB2_G(bin_mode)) {
 		case DB2_BINARY:
-			php_info_print_table_row(2, "Binary data mode (ibm_db2.binmode)", "DB2_BINARY");
+			php_info_print_table_row(2, "Binary data mode (ibm_db2.binmode)", "1 - DB2_BINARY");
 		break;
 
 		case DB2_CONVERT:
-			php_info_print_table_row(2, "Binary data mode (ibm_db2.binmode)", "DB2_CONVERT");
+			php_info_print_table_row(2, "Binary data mode (ibm_db2.binmode)", "2 - DB2_CONVERT");
 		break;
 
 		case DB2_PASSTHRU:
-			php_info_print_table_row(2, "Binary data mode (ibm_db2.binmode)", "DB2_PASSTHRU");
+			php_info_print_table_row(2, "Binary data mode (ibm_db2.binmode)", "3 - DB2_PASSTHRU");
 		break;
 	}
 #ifndef PHP_WIN32
@@ -1082,72 +1084,72 @@ PHP_MINFO_FUNCTION(ibm_db2)
 #endif
 	/* 1.9.7 - LUW to IBM i need isolation mode *NONE (required non journal CRTLIB) */
 	if (IBM_DB2_G(i5_allow_commit) >= 4) {
-		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "DB2_I5_TXN_SERIALIZABLE");
+		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "4 - DB2_I5_TXN_SERIALIZABLE");
 	} else if (IBM_DB2_G(i5_allow_commit) >= 3) {
-		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "DB2_I5_TXN_REPEATABLE_READ");
+		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "3 - DB2_I5_TXN_REPEATABLE_READ");
 	} else if (IBM_DB2_G(i5_allow_commit) >= 2) {
-		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "DB2_I5_TXN_READ_COMMITTED");
+		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "2 - DB2_I5_TXN_READ_COMMITTED");
 	} else if (IBM_DB2_G(i5_allow_commit) >= 1) {
-		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "DB2_I5_TXN_READ_UNCOMMITTED");
+		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "1 - DB2_I5_TXN_READ_UNCOMMITTED");
 	} else if (IBM_DB2_G(i5_allow_commit) >= 0) {
-		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "DB2_I5_TXN_NO_COMMIT");
-	} else {
-		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "default");
+		php_info_print_table_row(2, "Commitment control (ibm_db2.i5_allow_commit)", "0 - DB2_I5_TXN_NO_COMMIT");
 	}
 	/* 1.9.7 - IBM i + LUW 10.5 system naming on (*libl)/file.mbr */
 	if (IBM_DB2_G(i5_sys_naming) > 0) {
-		php_info_print_table_row(2, "System naming mode (ibm_db2.i5_sys_naming)", "enabled");
+		php_info_print_table_row(2, "System naming mode (ibm_db2.i5_sys_naming)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "System naming mode (ibm_db2.i5_sys_naming)", "disabled");
+		php_info_print_table_row(2, "System naming mode (ibm_db2.i5_sys_naming)", "0 - disabled");
 	}
 #ifdef PASE /* IBM i phpinfo output missing (long time bug) */
 	/* orig  - IBM i 6x space for CCSID<>UTF-8 convert  (DBCS customer issue) */
 	if (IBM_DB2_G(i5_dbcs_alloc) > 0) {
-		php_info_print_table_row(2, "DBCS extended conversion memory allocations (ibm_db2.i5_dbcs_alloc)", "enabled");
+		php_info_print_table_row(2, "DBCS extended conversion memory allocations (ibm_db2.i5_dbcs_alloc)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "DBCS extended conversion memory allocations (ibm_db2.i5_dbcs_alloc)", "disabled");
+		php_info_print_table_row(2, "DBCS extended conversion memory allocations (ibm_db2.i5_dbcs_alloc)", "0 - disabled");
 	}
 	/* orig  - IBM i force all connect to pconnect (operator issue) */
 	if (IBM_DB2_G(i5_all_pconnect) > 0) {
-		php_info_print_table_row(2, "Force db2_connect to db2_pconnect (ibm_db2.i5_all_pconnect)", "enabled");
+		php_info_print_table_row(2, "Force db2_connect to db2_pconnect (ibm_db2.i5_all_pconnect)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "Force db2_connect to db2_pconnect (ibm_db2.i5_all_pconnect)", "disabled");
+		php_info_print_table_row(2, "Force db2_connect to db2_pconnect (ibm_db2.i5_all_pconnect)", "0 - disabled");
 	}
 	/* orig  - IBM i ignore user id enables no-QSQSRVR job (custom site request) */
 	if (IBM_DB2_G(i5_ignore_userid) > 0) {
-		php_info_print_table_row(2, "Ignore userid/password (ibm_db2.i5_ignore_userid)", "enabled");
+		php_info_print_table_row(2, "Ignore userid/password (ibm_db2.i5_ignore_userid)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "Ignore userid/password (ibm_db2.i5_ignore_userid)", "disabled");
+		php_info_print_table_row(2, "Ignore userid/password (ibm_db2.i5_ignore_userid)", "0 - disabled");
 	}
 	/* orig  - IBM i SQL_ATTR_JOB_SORT_SEQUENCE (customer request DB2 PTF) */
 	if (IBM_DB2_G(i5_job_sort) > 0) {
-		php_info_print_table_row(2, "Job profile sort order (ibm_db2.i5_job_sort)", "enabled");
+		php_info_print_table_row(2, "Job profile sort order (ibm_db2.i5_job_sort)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "Job profile sort order (ibm_db2.i5_job_sort)", "disabled");
+		php_info_print_table_row(2, "Job profile sort order (ibm_db2.i5_job_sort)", "0 - disabled");
 	}
 	/* 1.9.7 - IBM i force UTF-8 CCSID (DBCS customer issue) */
 	if (IBM_DB2_G(i5_override_ccsid) > 0) {
-		php_info_print_table_row(2, "Override PASE CCSID (ibm_db2.i5_override_ccsid)", "enabled");
+		snprintf(opbuffer, sizeof(opbuffer), "%d - enabled (ccsid)", IBM_DB2_G(i5_override_ccsid));
+		php_info_print_table_row(2, "Override PASE CCSID (ibm_db2.i5_override_ccsid)", opbuffer);
 	} else {
-		php_info_print_table_row(2, "Override PASE CCSID (ibm_db2.i5_override_ccsid)", "disabled");
+		php_info_print_table_row(2, "Override PASE CCSID (ibm_db2.i5_override_ccsid)", "0 - disabled");
 	}
 	/* 1.9.7 - IBM i security restrict blank db,uid,pwd (unless customer allow flag) */
 	if (IBM_DB2_G(i5_blank_userid) > 0) {
-		php_info_print_table_row(2, "Allow blank userid/password (ibm_db2.i5_blank_userid)", "enabled");
+		php_info_print_table_row(2, "Allow blank userid/password (ibm_db2.i5_blank_userid)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "Allow blank userid/password (ibm_db2.i5_blank_userid)", "disabled");
+		php_info_print_table_row(2, "Allow blank userid/password (ibm_db2.i5_blank_userid)", "0 - disabled");
 	}
 	/* 1.9.7 - IBM i consultant request log additional information into php.log */
 	if (IBM_DB2_G(i5_log_verbose) > 0) {
-		php_info_print_table_row(2, "DB2 error log verbose (ibm_db2.i5_log_verbose)", "enabled");
+		php_info_print_table_row(2, "DB2 error log verbose (ibm_db2.i5_log_verbose)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "DB2 error log verbose (ibm_db2.i5_log_verbose)", "disabled");
+		php_info_print_table_row(2, "DB2 error log verbose (ibm_db2.i5_log_verbose)", "0 - disabled");
 	}
 	/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection) */
 	if (IBM_DB2_G(i5_max_pconnect) > 0) {
-		php_info_print_table_row(2, "Max use count db2_pconnect (ibm_db2.i5_max_pconnect)", "enabled");
+		snprintf(opbuffer, sizeof(opbuffer), "%d - enabled (1-99999)", IBM_DB2_G(i5_max_pconnect));
+		php_info_print_table_row(2, "Max use count db2_pconnect (ibm_db2.i5_max_pconnect)", opbuffer);
 	} else {
-		php_info_print_table_row(2, "Max use count db2_pconnect (ibm_db2.i5_max_pconnect)", "disabled");
+		php_info_print_table_row(2, "Max use count db2_pconnect (ibm_db2.i5_max_pconnect)", "0 - disabled");
 	}
 	/* 1.9.7 - IBM i remote persistent connection or long lived local (customer issue dead connection) */
 	if (IBM_DB2_G(i5_check_pconnect) >= 4) {
@@ -1163,9 +1165,9 @@ PHP_MINFO_FUNCTION(ibm_db2)
 	php_info_print_table_row(2, "DB2 server mode subsystem (ibm_db2.i5_servermode_subsystem)", INI_STR("ibm_db2.i5_servermode_subsystem"));
 	/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
 	if (IBM_DB2_G(i5_guard_profile) > 0) {
-		php_info_print_table_row(2, "Guard profile (ibm_db2.i5_guard_profile)", "enabled");
+		php_info_print_table_row(2, "Guard profile (ibm_db2.i5_guard_profile)", "1 - enabled");
 	} else {
-		php_info_print_table_row(2, "Guard profile (ibm_db2.i5_guard_profile)", "disabled");
+		php_info_print_table_row(2, "Guard profile (ibm_db2.i5_guard_profile)", "0 - disabled");
 	}
 #endif /* PASE */
 	php_info_print_table_end();
@@ -2610,7 +2612,7 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 				} else {
 					rc = SQLGetConnectAttr(conn_res->hdbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)&try_auto, 0, NULL);
 				}
-                /* 1.9.7 -- result of db2 maid service (ping replacement) */
+				/* 1.9.7 -- result of db2 maid service (ping replacement) */
 				if (rc != SQL_SUCCESS) {
 					conn_alive = 0;
 				}
@@ -4479,8 +4481,8 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
 	char platform_need_full_pad = 0;
 	char platform_pad = 0x00;
 	char *front = NULL;
-    char *back = NULL;
-    char *here = NULL;
+	char *back = NULL;
+	char *here = NULL;
 	int isNeg = 0;
 	int isNum = 0;
 	int dreadPirateCHAR0 = 0;
@@ -4532,7 +4534,7 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
 #endif/* PASE */
 
 	/* resize only out and inout parameters (or IBM i platform_need_full_pad) */
-    if (!(curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT)) {
+	if (!(curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT)) {
 		return SQL_SUCCESS;
 	}
 
@@ -4542,7 +4544,7 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
 	/*
 	 * IS_INTERNED() macro to check if a given char* is interned or regular string
 	 * each string (or atom) is allocated once and never changed (immutable)
-	 * aka, not useful for INOUT and OUT paramters obviously
+	 * aka, not useful for INOUT and OUT parameters obviously
 	 */
 	if (IS_INTERNED(ZEND_STR(*data))) {
 #if PHP_MAJOR_VERSION >= 7
@@ -4564,12 +4566,12 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
 		} else {
 			memset(ZEND_Z_STRVAL_PP(data) + *poriglen, platform_pad, curr->param_size - *poriglen);
 		}
-        if (nullterm) {
-		  /* ZEND_Z_STRVAL_PP(data)[*poriglen] = '\0'; (LUW?) */
-		  ZEND_Z_STRVAL_PP(data)[curr->param_size] = '\0';
-        }
+		if (nullterm) {
+			/* ZEND_Z_STRVAL_PP(data)[*poriglen] = '\0'; (LUW?) */
+			ZEND_Z_STRVAL_PP(data)[curr->param_size] = '\0';
+		}
 		ZEND_Z_STRLEN_PP(data) = curr->param_size; /* yes, length-1 for bind parm max */
-        *poriglen = curr->param_size;
+		*poriglen = curr->param_size;
 	}
 
 	/* IBM i has no CHAR0 type (return to normal) */
@@ -4599,7 +4601,7 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
 		 */
 		case SQL_BIGINT:
 			front=ZEND_Z_STRVAL_PP(data);
-            here=back=ZEND_Z_STRVAL_PP(data) + ZEND_Z_STRLEN_PP(data) - nullterm;
+			here=back=ZEND_Z_STRVAL_PP(data) + ZEND_Z_STRLEN_PP(data) - nullterm;
 			for (;here>=front;here--) {
 				if (*here == '-') {
 					isNeg = 1;
@@ -4877,7 +4879,7 @@ static int _php_db2_execute_helper(stmt_handle *stmt_res, zval **data, int bind_
 	int rc=SQL_SUCCESS;
 	param_node *curr = NULL;	/* To traverse the list */
 	zval **bind_data;			/* Data value from symbol table */
-    zval *temp = NULL;
+	zval *temp = NULL;
 	/* Used in call to SQLDescribeParam if needed */
 	SQLUSMALLINT param_no;
 	SQLSMALLINT data_type;
@@ -5221,7 +5223,6 @@ PHP_FUNCTION(db2_execute)
 						tmp_curr->value->value.lval = (long)tmp_curr->long_value;
 					}
 					_php_db2_set_symbol(tmp_curr->varname, tmp_curr->value);
-
 				default:
 					break;
 			}

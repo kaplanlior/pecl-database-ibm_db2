@@ -1,0 +1,49 @@
+Binary data mode (ibm_db2.binmode), 1 - DB2_BINARY <--default
+Binary data mode (ibm_db2.binmode), 2 - DB2_CONVERT
+Binary data mode (ibm_db2.binmode), 3 - DB2_PASSTHRU
+
+DB2 instance name (ibm_db2.instance_name), "string" or "" <--default ""
+
+Commitment control (ibm_db2.i5_allow_commit), 4 - DB2_I5_TXN_SERIALIZABLE
+Commitment control (ibm_db2.i5_allow_commit), 3 - DB2_I5_TXN_REPEATABLE_READ
+Commitment control (ibm_db2.i5_allow_commit), 2 - DB2_I5_TXN_READ_COMMITTED
+Commitment control (ibm_db2.i5_allow_commit), 1 - DB2_I5_TXN_READ_UNCOMMITTED
+Commitment control (ibm_db2.i5_allow_commit), 0 - DB2_I5_TXN_NO_COMMIT <--default
+
+System naming mode (ibm_db2.i5_sys_naming), 1 - enabled
+System naming mode (ibm_db2.i5_sys_naming), 0 - disabled <--default
+
+DBCS extended conversion memory allocations (ibm_db2.i5_dbcs_alloc), 1 - enabled
+DBCS extended conversion memory allocations (ibm_db2.i5_dbcs_alloc), 0 - disabled <--default
+
+Force db2_connect to db2_pconnect (ibm_db2.i5_all_pconnect), 1 - enabled
+Force db2_connect to db2_pconnect (ibm_db2.i5_all_pconnect), 0 - disabled <--default
+
+Ignore userid/password (ibm_db2.i5_ignore_userid), 1 - enabled
+Ignore userid/password (ibm_db2.i5_ignore_userid), 0 - disabled <--default
+
+Job profile sort order (ibm_db2.i5_job_sort), 1 - enabled
+Job profile sort order (ibm_db2.i5_job_sort), 0 - disabled <--default
+
+Override PASE CCSID (ibm_db2.i5_override_ccsid), 1-99999 - enabled
+Override PASE CCSID (ibm_db2.i5_override_ccsid), 0 - disabled <--default
+
+Allow blank userid/password (ibm_db2.i5_blank_userid), 1 - enabled
+Allow blank userid/password (ibm_db2.i5_blank_userid), 0 - disabled <--default
+
+DB2 error log verbose (ibm_db2.i5_log_verbose), 1 - enabled
+DB2 error log verbose (ibm_db2.i5_log_verbose), 0 - disabled <--default
+
+Max use count db2_pconnect (ibm_db2.i5_max_pconnect), 1-99999 - enabled
+Max use count db2_pconnect (ibm_db2.i5_max_pconnect), 0 - disabled <--default
+
+Advanced db2_pconnect monitor (ibm_db2.i5_check_pconnect), 4 - exec/fetch test
+Advanced db2_pconnect monitor (ibm_db2.i5_check_pconnect), 3 - create stmt test
+Advanced db2_pconnect monitor (ibm_db2.i5_check_pconnect), 2 - get conn meta test
+Advanced db2_pconnect monitor (ibm_db2.i5_check_pconnect), 1 - get conn attribute test <--default
+
+DB2 server mode subsystem (ibm_db2.i5_servermode_subsystem), "string" or "" <--default ""
+
+Guard profile (ibm_db2.i5_guard_profile), 1 - enabled
+Guard profile (ibm_db2.i5_guard_profile), 0 - disabled <--default
+
