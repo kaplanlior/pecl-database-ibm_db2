@@ -432,7 +432,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("ibm_db2.i5_job_sort", "-42", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_job_sort, zend_ibm_db2_globals, ibm_db2_globals)
 	/* 1.9.7 - IBM i force UTF-8 CCSID (NLS customer issues) */
-	STD_PHP_INI_ENTRY("ibm_db2.i5_override_ccsid", "1208", PHP_INI_SYSTEM, OnUpdateLong,
+	STD_PHP_INI_ENTRY("ibm_db2.i5_override_ccsid", "0", PHP_INI_SYSTEM, OnUpdateLong,
 		i5_override_ccsid, zend_ibm_db2_globals, ibm_db2_globals) 
 	/* 1.9.7 - IBM i security restrict blank db,uid,pwd (unless customer allow flag) */
 	STD_PHP_INI_ENTRY("ibm_db2.i5_blank_userid", "-42", PHP_INI_SYSTEM, OnUpdateLong,
@@ -665,7 +665,7 @@ static void php_ibm_db2_init_globals(zend_ibm_db2_globals *ibm_db2_globals)
 	ibm_db2_globals->i5_all_pconnect = -42;		/* orig  - IBM i force all connect to pconnect (operator issue) */
 	ibm_db2_globals->i5_ignore_userid = -42;	/* orig  - IBM i ignore user id enables no-QSQSRVR job (custom site request) */
 	ibm_db2_globals->i5_job_sort = -42;			/* orig  - IBM i SQL_ATTR_JOB_SORT_SEQUENCE (customer request DB2 PTF) */
-	ibm_db2_globals->i5_override_ccsid = 1208;	/* 1.9.7 - IBM i force UTF-8 CCSID (NLS customer issues) */
+	ibm_db2_globals->i5_override_ccsid = 0;	/* 1.9.7 - IBM i force UTF-8 CCSID (NLS customer issues) */
 	ibm_db2_globals->i5_blank_userid = -42;		/* 1.9.7 - IBM i security restrict blank db,uid,pwd (unless customer allow flag) */
 	ibm_db2_globals->i5_log_verbose = -42;		/* 1.9.7 - IBM i consultant request log additional information into php.log */
 	ibm_db2_globals->i5_max_pconnect = -42;		/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection) */
@@ -1897,10 +1897,15 @@ static void _php_db2_assign_options( void *handle, int type, char *opt_key, zval
 		 * A character value that indicates the default library that will be used for resolving unqualified file references. 
 		 * This is not valid if the connection is using system naming mode.
 		 */
-		char * lib = (char *)option_str;
-		rc = SQLSetConnectAttr((SQLHDBC)((conn_handle*)handle)->hdbc, SQL_ATTR_DBC_DEFAULT_LIB, (SQLPOINTER)lib, SQL_NTS);
-		if ( rc == SQL_ERROR ) {
-			_php_db2_check_sql_errors((SQLHSTMT)((conn_handle*)handle)->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
+		if (((conn_handle*)handle)->c_i5_sys_naming == DB2_I5_NAMING_ON) {
+			char * i5Msg = "i5_naming = DB2_I5_NAMING_ON, therefore i5_lib invalid (ignore).";
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, (char *)i5Msg);
+		} else {
+			char * lib = (char *)option_str;
+			rc = SQLSetConnectAttr((SQLHDBC)((conn_handle*)handle)->hdbc, SQL_ATTR_DBC_DEFAULT_LIB, (SQLPOINTER)lib, SQL_NTS);
+			if ( rc == SQL_ERROR ) {
+				_php_db2_check_sql_errors((SQLHSTMT)((conn_handle*)handle)->hdbc, SQL_HANDLE_DBC, rc, 1, NULL, -1, 1 TSRMLS_CC);
+			}
 		}
 	} else if (!STRCASECMP(opt_key, "i5_job_sort")) {
 		/* i5_job_sort - SQL_ATTR_CONN_SORT_SEQUENCE
@@ -4439,7 +4444,7 @@ static param_node* _php_db2_build_list( stmt_handle *stmt_res, int param_no, SQL
 /* }}} */
 
 
-/* {{{ static int _php_db2_param_pad_inout_or_out
+/* {{{ static int _php_db2_bind_pad
  * CLI problem ...
  * SQLBindParameter architecture appears broken for I/O params. This CLI API
  * uses last parameter 'bind_len' to control both in and out lengths.
@@ -4469,60 +4474,132 @@ static param_node* _php_db2_build_list( stmt_handle *stmt_res, int param_no, SQL
  *   therefore end of data pad expected to be pad 'spaces' (0x20).
  *   Of course, 0x20 pad means strip after SQLExecute (argh).
  */
-static int _php_db2_param_pad_inout_or_out(int data_type, size_t length, int scale, int *poriglen, zval **data TSRMLS_DC)
+static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int isbinary, int *poriglen, zval **data TSRMLS_DC)
 {
-	int origlen = *poriglen;
+	char platform_need_full_pad = 0;
 	char platform_pad = 0x00;
-	char *front = NULL,*back = NULL,*here = NULL;
+	char *front = NULL;
+    char *back = NULL;
+    char *here = NULL;
 	int isNeg = 0;
 	int isNum = 0;
-	
-	/* Stored procedure params: */
-#ifdef PASE
-	platform_pad = 0x20;
-#else
+	int dreadPirateCHAR0 = 0;
+	int save_param_type = 0;
+	int save_origlen = 0;
+
+#ifndef PASE
+	/* Other almost all c (null term string) */
 	if (is_ios != 1) {
 		platform_pad = 0x00;
+	/* IBM i almost all RPG (*BLANKS) */
 	} else {
 		platform_pad = 0x20;
 	}
-#endif /* PASE */
+#else
+	/* IBM i binary is zero */
+	if (isbinary) {
+		platform_pad = 0x00;
+	/* IBM i almost all RPG (*BLANKS) */
+	} else {
+		platform_pad = 0x20;
+	}
+	/* IBM i has no CHAR0 type (zero length null term string) */
+	if (ZEND_Z_STRLEN_PP(data) == 0 || ZEND_Z_STRVAL_PP(data)[0] == '\0') {
+		switch (isvarying) {
+		case 0: /* need full *BLANKS */
+			platform_need_full_pad = 1;
+			break;
+		case 1: /* varchar, etc. (works) */
+			platform_need_full_pad = 0;
+			break;
+		case 2: /* clob, etc. (clear) */
+			platform_need_full_pad = 2;
+			break;
+		default:
+			break;
+		}
+	}
+	/* resize out and inout parameters */
+	if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
+		/* continue */
+	/* IBM i has no CHAR0 type (zero length null term string) */
+	} else if (platform_need_full_pad) {
+		dreadPirateCHAR0 = 1;
+		save_param_type = curr->param_type;
+		save_origlen = *poriglen;
+		curr->param_type = DB2_PARAM_INOUT;
+	}
+#endif/* PASE */
+
+	/* resize only out and inout parameters (or IBM i platform_need_full_pad) */
+    if (!(curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT)) {
+		return SQL_SUCCESS;
+	}
+
+	/* current length */
+	*poriglen = ZEND_Z_STRLEN_PP(data);
+
 	/*
 	 * IS_INTERNED() macro to check if a given char* is interned or regular string
 	 * each string (or atom) is allocated once and never changed (immutable)
 	 * aka, not useful for INOUT and OUT paramters obviously
 	 */
+	if (IS_INTERNED(ZEND_STR(*data))) {
 #if PHP_MAJOR_VERSION >= 7
-	if (IS_INTERNED(ZEND_STR(*data))) {
 		Z_STR_P(*data) = zend_string_init(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data), 0);
-	}
-	if (origlen < length) {
-		Z_STR_P(*data) = zend_string_extend(Z_STR_P(*data), length + 1, 0);
-		memset(Z_STR_P(*data)->val + origlen, platform_pad, length - origlen);
-		Z_STR_P(*data)->val[length] = '\0';
-		ZEND_Z_STRLEN_PP(data) = length; /* one less size (yes, lying intentional to avoid implicit conv error -- dave) */
-	}
 #else
-	if (IS_INTERNED(ZEND_STR(*data))) {
 		ZEND_Z_STRVAL_PP(data) = estrndup(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data));
-	}
-	if (origlen < length) {
-		ZEND_Z_STRVAL_PP(data) = erealloc(ZEND_Z_STRVAL_PP(data), length + 1);
-		memset(ZEND_Z_STRVAL_PP(data) + origlen, platform_pad, length - origlen);
-		ZEND_Z_STRVAL_PP(data)[length] = '\0';
-		ZEND_Z_STRLEN_PP(data) = length;
-	}
 #endif
+	}
+
+	/* make enough space for full write */
+	if (*poriglen < curr->param_size) {
+#if PHP_MAJOR_VERSION >= 7
+		Z_STR_P(*data) = zend_string_extend(Z_STR_P(*data), curr->param_size + nullterm, 0);
+#else
+		ZEND_Z_STRVAL_PP(data) = erealloc(ZEND_Z_STRVAL_PP(data), curr->param_size + nullterm);
+#endif
+		if (platform_need_full_pad) {
+			memset(ZEND_Z_STRVAL_PP(data), platform_pad, curr->param_size + nullterm);
+		} else {
+			memset(ZEND_Z_STRVAL_PP(data) + *poriglen, platform_pad, curr->param_size - *poriglen);
+		}
+        if (nullterm) {
+		  /* ZEND_Z_STRVAL_PP(data)[*poriglen] = '\0'; (LUW?) */
+		  ZEND_Z_STRVAL_PP(data)[curr->param_size] = '\0';
+        }
+		ZEND_Z_STRLEN_PP(data) = curr->param_size; /* yes, length-1 for bind parm max */
+        *poriglen = curr->param_size;
+	}
+
+	/* IBM i has no CHAR0 type (return to normal) */
+	if (dreadPirateCHAR0 == 1) {
+		ZEND_Z_STRVAL_PP(data)[0] = platform_pad;
+		dreadPirateCHAR0 = 0;
+		curr->param_type = save_param_type;
+		switch(platform_need_full_pad) {
+		case 2: /* clob, etc. (clear) */
+			*poriglen = 1;
+			break;
+		default:
+			*poriglen = save_origlen;
+			break;
+		}
+	}
+
+	/* something went very wrong with heap */
 	if (ZEND_Z_STRVAL_PP(data) == NULL ) {
 		return SQL_ERROR;
 	}
-	switch ( data_type ) {
+
+	/* other fix up types */
+	switch ( curr->data_type ) {
 		/* BIGINT<implicit>CHAR works consistently if 0x30 pad left, 
 		 * '2' becomes '000000000000000000002'
 		 */
 		case SQL_BIGINT:
 			front=ZEND_Z_STRVAL_PP(data);
-			here=back=ZEND_Z_STRVAL_PP(data)+ZEND_Z_STRLEN_PP(data)-2;
+            here=back=ZEND_Z_STRVAL_PP(data) + ZEND_Z_STRLEN_PP(data) - nullterm;
 			for (;here>=front;here--) {
 				if (*here == '-') {
 					isNeg = 1;
@@ -4547,8 +4624,6 @@ static int _php_db2_param_pad_inout_or_out(int data_type, size_t length, int sca
 		default:
 			break;
 	}
-	/* may have expanded 'origlen' (read hack above) */
-	*poriglen = ZEND_Z_STRLEN_PP(data);
 	return SQL_SUCCESS;
 }
 /* }}} */
@@ -4562,12 +4637,15 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 	SQLPOINTER  paramValuePtr;
 	int nullterm = 0;
 	int origlen = -1;
+	int isvarying = 0;
+	int isbinary = 0;
 
 #if PHP_MAJOR_VERSION >= 7
 	/* $mydata = 3;
 	 * function callme () {
 	 *   global $mydata;
 	 *   db2_bind_param( $stmt , 1 , "mydata" , DB2_PARAM_INOUT );
+     * ...
 	 */ 
 	switch(ZEND_Z_TYPE_PP(bind_data)) {
 		case IS_REFERENCE:
@@ -4588,6 +4666,37 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 	MAKE_STD_ZVAL(curr->value);
 #endif
 
+	switch ( curr->data_type ) {
+		case SQL_BINARY:
+		case SQL_VARBINARY:
+		case SQL_LONGVARBINARY:
+		case SQL_BLOB:
+			isbinary = 1;
+			break;
+		default:
+			break;
+	}
+
+	switch ( curr->data_type ) {
+		case SQL_VARCHAR:
+		case SQL_WVARCHAR:
+		case SQL_VARGRAPHIC:
+		case SQL_LONGVARCHAR:
+		case SQL_WLONGVARCHAR:
+		case SQL_LONGVARGRAPHIC:
+			isvarying = 1;
+			break;
+		case SQL_CLOB:
+		case SQL_DBCLOB:
+		case SQL_XML:
+		case SQL_BLOB:
+		case SQL_VARBINARY:
+		case SQL_LONGVARBINARY:
+			isvarying = 2;
+			break;
+		default:
+			break;
+	}
 
 	switch ( curr->data_type ) {
 		case SQL_SMALLINT:
@@ -4615,6 +4724,10 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 		case SQL_XML:
 		case SQL_DBCLOB:
 			nullterm = 1;
+		case SQL_TYPE_DATE:
+		case SQL_DATETIME:
+		case SQL_TYPE_TIME:
+		case SQL_TYPE_TIMESTAMP:
 		case SQL_BINARY:
 		case SQL_LONGVARBINARY:
 		case SQL_VARBINARY:
@@ -4627,30 +4740,9 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 			if (*bind_data && ZEND_Z_TYPE_PP(bind_data) != IS_STRING) {
 				convert_to_string(*bind_data);
 			}
-			if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
-				origlen = ZEND_Z_STRLEN_PP(bind_data);
-				if (_php_db2_param_pad_inout_or_out(curr->data_type, curr->param_size + nullterm, curr->scale, &origlen, bind_data) == SQL_ERROR) {
-					return SQL_ERROR;
-				}
-			}
-			break;
-		case SQL_TYPE_DATE:
-		case SQL_DATETIME:
-		case SQL_TYPE_TIME:
-		case SQL_TYPE_TIMESTAMP:
-			/* ADC: test 145/many need NULL special handling (LUW and i5/OS) */
-			if (ZEND_Z_TYPE_PP(bind_data) == IS_NULL){
-				break;
-			}
-			/* make sure copy in is a string (ZEND_Z_STRVAL_PP(bind_data) && ) */
-			if (*bind_data && ZEND_Z_TYPE_PP(bind_data) != IS_STRING) {
-				convert_to_string(*bind_data);
-			}
-			if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
-				origlen = ZEND_Z_STRLEN_PP(bind_data);
-				if (_php_db2_param_pad_inout_or_out(curr->data_type, curr->param_size + nullterm, curr->scale, &origlen, bind_data) == SQL_ERROR) {
-					return SQL_ERROR;
-				}
+			/* make sure out and inout param allocation large enough for full length writes */
+			if ((rc = (_php_db2_bind_pad(curr, nullterm, isvarying, isbinary, &origlen, bind_data))) == SQL_ERROR) {
+				return SQL_ERROR;
 			}
 			break;
 
@@ -4672,7 +4764,7 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 		if ( ZEND_Z_TYPE_PP(bind_data) != IS_STRING) {
 			return SQL_ERROR;
 		}
-
+		/* len = 0 */
 		curr->bind_indicator = 0;
 		/* Bind file name string */
 		curr->short_strlen = (SQLSMALLINT) (Z_STRLEN_P(curr->value));
@@ -4715,39 +4807,7 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 
 		case IS_STRING:
 			switch ( curr->data_type ) {
-				case SQL_CLOB:
-				case SQL_DBCLOB:
-					valueType = SQL_C_CHAR;
-					if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
-						if (origlen != -1) {
-							 curr->bind_indicator = origlen;
-						} else {
-							curr->bind_indicator = Z_STRLEN_P(curr->value);
-						}
-						paramValuePtr = (SQLPOINTER)(Z_STRVAL_P(curr->value));
-					} else {
-						/* The correct dataPtr will be set during SQLPutData with len */
-						curr->bind_indicator = SQL_DATA_AT_EXEC;
-						paramValuePtr = (SQLPOINTER)&((curr->value)->value);
-					}
-					break;
-
 				case SQL_BLOB:
-					valueType = SQL_C_BINARY;
-					if (curr->param_type == DB2_PARAM_OUT || curr->param_type == DB2_PARAM_INOUT) {
-						if (origlen != -1) {
-							curr->bind_indicator = origlen;
-						} else {
-							curr->bind_indicator = Z_STRLEN_P(curr->value);
-						}
-						paramValuePtr = (SQLPOINTER)(Z_STRVAL_P(curr->value));
-					} else {
-						/* The correct dataPtr will be set during SQLPutData with len */
-						curr->bind_indicator = SQL_DATA_AT_EXEC;
-						paramValuePtr = (SQLPOINTER)&((curr->value)->value);
-					}
-					break;
-
 				case SQL_BINARY:
 				case SQL_LONGVARBINARY:
 				case SQL_VARBINARY:
@@ -4774,7 +4834,6 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 					curr->bind_indicator = SQL_NTS;
 					paramValuePtr = (SQLPOINTER)(Z_STRVAL_P(curr->value));
 					break;
-				/* This option should handle most other types such as DATE, CHAR etc */
 				default:
 					valueType = SQL_C_CHAR;
 					if (origlen != -1) {
@@ -4787,7 +4846,7 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 			}
 			rc = SQLBindParameter(stmt_res->hstmt, curr->param_num,
 				curr->param_type, valueType, curr->data_type, curr->param_size,
-				curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+1, &(curr->bind_indicator));
+				curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+nullterm, &(curr->bind_indicator));
 			if ( rc == SQL_ERROR ) {
 				_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 			}
@@ -4962,7 +5021,10 @@ PHP_FUNCTION(db2_execute)
 	char str[1024] = {0};
 	ulong num_key;
 #endif
+	SQLPOINTER paramValuePtr=NULL;
 	SQLPOINTER valuePtr=NULL;
+	SQLPOINTER valuePtr2=NULL;
+    SQLINTEGER valueLen2 = 0;
 
 	/* This is used to loop over the param cache */
 	param_node *tmp_curr, *prev_ptr, *curr_ptr;
@@ -5103,35 +5165,13 @@ PHP_FUNCTION(db2_execute)
 		_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 		RETVAL_FALSE;
 	}
-#ifdef PASE /* i5/OS warnings should make it to error log (probably LUW too) */	
-	if (IBM_DB2_G(i5_log_verbose) > 0 && rc == SQL_SUCCESS_WITH_INFO) {
-		_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, SQL_ERROR, 1, NULL, -1, 1 TSRMLS_CC);
-	}
-#endif /* PASE */
-	if ( rc == SQL_NEED_DATA ) {
-		while ( (rc = (SQLParamData((SQLHSTMT)stmt_res->hstmt, (SQLPOINTER *)&valuePtr))) == SQL_NEED_DATA ) {
-			/* passing data value for a parameter */
-			put_val = (zval *) valuePtr;
-			rc = SQLPutData((SQLHSTMT)stmt_res->hstmt, (SQLPOINTER)Z_STRVAL_P(put_val), Z_STRLEN_P(put_val));
-			if ( rc == SQL_ERROR ) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Sending data failed");
-				_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
-				RETVAL_FALSE;
-			}
-		}
-		if ( rc == SQL_ERROR ) {
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Statement Execute Failed");
-			_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
-			RETVAL_FALSE;
-		}
-	}
 	/* cleanup dynamic bindings if present */
 	if ( bind_params == 1 ) {
 		/* Free param cache list */
 		_free_param_cache_list(stmt_res);
 	} else {
 		/* Bind the IN/OUT Params back into the active symbol table
-		 * see _php_db2_param_pad_inout_or_out, IS_INTERNED, etc.
+		 * see _php_db2_bind_pad, IS_INTERNED, etc.
 		*/
 		tmp_curr = stmt_res->head_cache_list;
 		while (tmp_curr != NULL) {
@@ -5933,7 +5973,7 @@ static RETCODE _php_db2_get_data2(stmt_handle *stmt_res, SQLUSMALLINT col_num, S
 		/* adc -- bug stmt_res not right changed to new_hstmt */
 		_php_db2_check_sql_errors((SQLHSTMT)new_hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 	}
-#ifdef PASE /* i5/OS SQLGetSubString DBCLOB cases extra nulls -- no harm to simply remove */
+#ifdef PASE /* trim i5/OS SQLGetSubString DBCLOB cases extra nulls -- no harm to simply remove */
 	else if (*out_length > 1 && stmt_res->column_info[col_num-1].loc_type == SQL_DBCLOB_LOCATOR) {
 		int ib = *out_length - 1;
 		char * ibc = (char *) buff;

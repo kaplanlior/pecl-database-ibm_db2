@@ -536,6 +536,66 @@ if ($conn) {
     $result = @db2_exec($conn, $drop);
 
 
+    // ************************
+    // types null and null term
+    // ************************
+
+    // Drop the nullchars table, in case it exists
+    $drop = 'DROP TABLE NULLCHARS';
+    $res = @db2_exec($conn, $drop);
+
+    // Create the nullchars table
+    $create = 'CREATE TABLE NULLCHARS (EMPNO CHAR(6) NOT NULL, FIRSTNME VARCHAR(12) NOT NULL, MIDINIT CHAR(1) NOT NULL, LASTNAME CLOB(1024) NOT NULL)';
+    $res = db2_exec($conn, $create);
+
+    // Populate the nullchars table
+    $nullchars = array(
+      array('000010', 'CHRISTINE', 'I', 'HAAS'),
+      array('000120', 'SEAN',      '' , "O'CONNELL"),
+      array('0', 'PRINCE',   '', ''),
+      array('', '',   '', ''),
+      array('3', 'BOB', 'I', 'HERE')
+    );
+
+    $insert = "INSERT INTO NULLCHARS(EMPNO, FIRSTNME, MIDINIT, LASTNAME) VALUES (?, ?, ?, ?)";
+    $stmt = db2_prepare($conn, $insert);
+    if($stmt){
+        foreach ($nullchars as $row){
+           $res = db2_execute($stmt, $row);
+        }
+    }
+
+
+
+    // ************************
+    // types null and null term
+    // ************************
+
+    // Drop the nullbins table, in case it exists
+    $drop = 'DROP TABLE NULLBINS';
+    $res = @db2_exec($conn, $drop);
+
+    // Create the nullbins table
+    $create = 'CREATE TABLE NULLBINS (EMPNO BINARY(6) NOT NULL, FIRSTNME VARBINARY(12) NOT NULL, MIDINIT BINARY(1) NOT NULL, LASTNAME BLOB(1024) NOT NULL)';
+    $res = db2_exec($conn, $create);
+
+    // Populate the nullbins table
+    $nullbins = array(
+      array('000010', 'CHRISTINE', 'I', 'HAAS'),
+      array('000120', 'SEAN',      '' , "O'CONNELL"),
+      array('0', 'PRINCE',   '', ''),
+      array('', '',   '', ''),
+      array('3', 'BOB', 'I', 'HERE')
+    );
+
+    $insert = "INSERT INTO NULLBINS(EMPNO, FIRSTNME, MIDINIT, LASTNAME) VALUES (?, ?, ?, ?)";
+    $stmt = db2_prepare($conn, $insert);
+    if($stmt){
+        foreach ($nullbins as $row){
+           $res = db2_execute($stmt, $row);
+        }
+    }
+
 }
 
 ?>
