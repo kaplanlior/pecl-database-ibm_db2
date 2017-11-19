@@ -239,6 +239,7 @@ typedef struct _conn_handle_struct {
 #ifdef PASE /* IBM i overrides php.ini */
 	long c_i5_dbcs_alloc;		/* orig  - IBM i 6x space for CCSID<>UTF-8 convert  (DBCS customer issue) */
 	long c_i5_max_pconnect;		/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection)  */
+	long c_i5_executing;		/* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
 #endif /* PASE */
 	/* 1.9.7 - IBM i + LUW 10.5 system naming on (*libl)/file.mbr */
 	long c_i5_sys_naming;			/* 1.9.7 - IBM i + LUW DB2 Connect 10.5 system naming (customer *LIBL issues) */
@@ -284,8 +285,8 @@ typedef struct _stmt_handle_struct {
 	long cursor_type;
 	long s_case_mode;
 	long s_rowcount;
-#ifdef PASE /* IBM i override php.ini */
-	long s_i5_dbcs_alloc;
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+	conn_handle * s_i5_conn_parent;
 #endif /* PASE */
 	SQLSMALLINT error_recno_tracker;
 	SQLSMALLINT errormsg_recno_tracker;
@@ -829,8 +830,8 @@ static stmt_handle *_db2_new_stmt_struct(conn_handle* conn_res)
 	stmt_res->cursor_type = conn_res->c_cursor_type;
 	stmt_res->s_case_mode = conn_res->c_case_mode;
 
-#ifdef PASE /* IBM i allow 6x DBCS convert php.ini */
-	stmt_res->s_i5_dbcs_alloc   = conn_res->c_i5_dbcs_alloc;
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+	stmt_res->s_i5_conn_parent = conn_res;
 #endif /* PASE */
 
 	stmt_res->expansion_factor = conn_res->expansion_factor;
@@ -2172,7 +2173,7 @@ static int _php_db2_get_result_set_info(stmt_handle *stmt_res TSRMLS_DC)
 				break;
 		}
 #ifdef PASE /* i5/OS DBCS may have up to 6 times growth in column alloc size on convert */
-		if (stmt_res->s_i5_dbcs_alloc > 0) {
+		if (stmt_res->s_i5_conn_parent->c_i5_dbcs_alloc > 0) {
 		    switch (stmt_res->column_info[i].type) {
 				case SQL_CHAR:
 				case SQL_VARCHAR:
@@ -2579,65 +2580,71 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 					reused = 1;
 				} /* else will re-connect since connection is dead */
 #else
-				/* 1.9.7 - IBM i remote persistent connection or long lived local (customer issue dead connection) */
-				/* 1.9.7 - IBM i i5/OS DB2 Maid Service (monitor QSQSRVR jobs) */
-				/* 1.9.7 - IBM i level 4: try conn new statement (check statement) */
-				if (IBM_DB2_G(i5_check_pconnect) >= 4) {
-					try_stmt_res = _db2_new_stmt_struct(conn_res);
-					rc = SQLAllocHandle(SQL_HANDLE_STMT, conn_res->hdbc, &(try_stmt_res->hstmt));
-					if (rc == SQL_SUCCESS) {
-						rc = SQLExecDirect((SQLHSTMT)try_stmt_res->hstmt, try_sql, strlen(try_sql));
-					}
-					/* bind col */
-					if (rc == SQL_SUCCESS) {
-						rc = SQLBindCol((SQLHSTMT)try_stmt_res->hstmt, 1, SQL_CHAR, try_date, strlen(try_date), &try_date_len);
-					}
-					/* fetch data */
-					if (rc == SQL_SUCCESS) {
-						rc = SQLFetch((SQLHSTMT)try_stmt_res->hstmt);
-					}
-					SQLFreeHandle( SQL_HANDLE_STMT, try_stmt_res->hstmt);
-					_php_db2_free_result_struct(try_stmt_res);
-				/* 1.9.7 - IBM i level 3: try allocate new statement (check allocate) */
-				} else if (IBM_DB2_G(i5_check_pconnect) >= 3) {
-					try_stmt_res = _db2_new_stmt_struct(conn_res);
-					rc = SQLAllocHandle(SQL_HANDLE_STMT, conn_res->hdbc, &(try_stmt_res->hstmt));
-					SQLFreeHandle( SQL_HANDLE_STMT, try_stmt_res->hstmt);
-					_php_db2_free_result_struct(try_stmt_res);
-				/* 1.9.7 - IBM i level 2: try conn get info (check meta data) */
- 				} else if (IBM_DB2_G(i5_check_pconnect) >=2 ) {
-					memset(server, 0, sizeof(server));
-					rc = SQLGetInfo(conn_res->hdbc, SQL_DBMS_NAME, (SQLPOINTER)server, 2048, NULL);
-				/* 1.9.7 - IBM i level 1: try conn get an attribute (check attribute) */
+				/* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+				if (conn_res->c_i5_executing) {
+					conn_res->flag_pconnect = 9;
+					conn_res->c_i5_executing = 0;
 				} else {
-					rc = SQLGetConnectAttr(conn_res->hdbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)&try_auto, 0, NULL);
-				}
-				/* 1.9.7 -- result of db2 maid service (ping replacement) */
-				if (rc != SQL_SUCCESS) {
-					conn_alive = 0;
-				}
-				/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
-				if (conn_alive && IBM_DB2_G(i5_guard_profile) > 0) {
-					memset(guard_uid,0,DB2_IBM_I_PROFILE_UID_MAX+1);
-					rc = _php_db2_i5_current_user(conn_res, guard_uid, DB2_IBM_I_PROFILE_UID_MAX);
-					if (rc == SQL_SUCCESS) {
-						if (strcmp(guard_uid, uid)) {
-								conn_alive = 0;
+					/* 1.9.7 - IBM i remote persistent connection or long lived local (customer issue dead connection) */
+					/* 1.9.7 - IBM i i5/OS DB2 Maid Service (monitor QSQSRVR jobs) */
+					/* 1.9.7 - IBM i level 4: try conn new statement (check statement) */
+					if (IBM_DB2_G(i5_check_pconnect) >= 4) {
+						try_stmt_res = _db2_new_stmt_struct(conn_res);
+						rc = SQLAllocHandle(SQL_HANDLE_STMT, conn_res->hdbc, &(try_stmt_res->hstmt));
+						if (rc == SQL_SUCCESS) {
+							rc = SQLExecDirect((SQLHSTMT)try_stmt_res->hstmt, try_sql, strlen(try_sql));
 						}
+						/* bind col */
+						if (rc == SQL_SUCCESS) {
+							rc = SQLBindCol((SQLHSTMT)try_stmt_res->hstmt, 1, SQL_CHAR, try_date, strlen(try_date), &try_date_len);
+						}
+						/* fetch data */
+						if (rc == SQL_SUCCESS) {
+							rc = SQLFetch((SQLHSTMT)try_stmt_res->hstmt);
+						}
+						SQLFreeHandle( SQL_HANDLE_STMT, try_stmt_res->hstmt);
+						_php_db2_free_result_struct(try_stmt_res);
+					/* 1.9.7 - IBM i level 3: try allocate new statement (check allocate) */
+					} else if (IBM_DB2_G(i5_check_pconnect) >= 3) {
+						try_stmt_res = _db2_new_stmt_struct(conn_res);
+						rc = SQLAllocHandle(SQL_HANDLE_STMT, conn_res->hdbc, &(try_stmt_res->hstmt));
+						SQLFreeHandle( SQL_HANDLE_STMT, try_stmt_res->hstmt);
+						_php_db2_free_result_struct(try_stmt_res);
+					/* 1.9.7 - IBM i level 2: try conn get info (check meta data) */
+ 					} else if (IBM_DB2_G(i5_check_pconnect) >=2 ) {
+						memset(server, 0, sizeof(server));
+						rc = SQLGetInfo(conn_res->hdbc, SQL_DBMS_NAME, (SQLPOINTER)server, 2048, NULL);
+					/* 1.9.7 - IBM i level 1: try conn get an attribute (check attribute) */
+					} else {
+						rc = SQLGetConnectAttr(conn_res->hdbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)&try_auto, 0, NULL);
 					}
-				}
-				/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection) */
-				if (conn_alive && conn_res->c_i5_max_pconnect > 0) {
-					conn_res->c_i5_max_pconnect--;
-					if (conn_res->c_i5_max_pconnect < 1) {
+					/* 1.9.7 -- result of db2 maid service (ping replacement) */
+					if (rc != SQL_SUCCESS) {
 						conn_alive = 0;
 					}
-				}
-				/* 1.9.7 - IBM i fully close (at least try) */
-				if (!conn_alive) {
-					/* close sets conn_res->flag_pconnect=9 */
-					_php_db2_close_now(conn_res, 1 TSRMLS_CC);
-				}
+					/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
+					if (conn_alive && IBM_DB2_G(i5_guard_profile) > 0) {
+						memset(guard_uid,0,DB2_IBM_I_PROFILE_UID_MAX+1);
+						rc = _php_db2_i5_current_user(conn_res, guard_uid, DB2_IBM_I_PROFILE_UID_MAX);
+						if (rc == SQL_SUCCESS) {
+							if (strcmp(guard_uid, uid)) {
+									conn_alive = 0;
+							}
+						}
+					}
+					/* 1.9.7 - IBM i count max usage connection recycle (customer issue months live connection) */
+					if (conn_alive && conn_res->c_i5_max_pconnect > 0) {
+						conn_res->c_i5_max_pconnect--;
+						if (conn_res->c_i5_max_pconnect < 1) {
+							conn_alive = 0;
+						}
+					}
+					/* 1.9.7 - IBM i fully close (at least try) */
+					if (!conn_alive) {
+						/* close sets conn_res->flag_pconnect=9 */
+						_php_db2_close_now(conn_res, 1 TSRMLS_CC);
+					}
+				} /* 1.9.9 executing */
 				reused = 1;
 #endif /* PASE */
 			}
@@ -2726,6 +2733,7 @@ static int _php_db2_connect_helper( INTERNAL_FUNCTION_PARAMETERS, conn_handle **
 
 #ifdef PASE /* 1.9.7 - move structure attr init one place (code clarity) */
 		conn_res->c_i5_dbcs_alloc = IBM_DB2_G(i5_dbcs_alloc); /* orig  - IBM i 6x space for CCSID<>UTF-8 convert  (DBCS customer issue) */
+        conn_res->c_i5_executing = 0; /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
 #endif /* PASE */
 		/* 1.9.7 - moved before _php_db2_parse_options, error ibm_db2.ini isolation was overriding user connect */
 		/* 1.9.7 - LUW to IBM i need isolation mode *NONE (required non journal CRTLIB) */
@@ -4254,7 +4262,13 @@ static int _php_db2_execute_stmt(stmt_handle *stmt_res TSRMLS_DC)
 {
 	int rc;
 
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+	stmt_res->s_i5_conn_parent->c_i5_executing = 1;
+#endif /* PASE */
 	rc = SQLExecute((SQLHSTMT)stmt_res->hstmt);
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+	stmt_res->s_i5_conn_parent->c_i5_executing = 0;
+#endif /* PASE */
 	if ( rc == SQL_ERROR ) {
 		_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 	}
@@ -5163,7 +5177,13 @@ PHP_FUNCTION(db2_execute)
 	} else {
 		/* No Parameters */
 		/* We just execute the statement. No additional work needed. */
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+		stmt_res->s_i5_conn_parent->c_i5_executing = 1;
+#endif /* PASE */
 		rc = SQLExecute((SQLHSTMT)stmt_res->hstmt);
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+		stmt_res->s_i5_conn_parent->c_i5_executing = 0;
+#endif /* PASE */
 		if ( rc == SQL_ERROR ) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Statement Execute Failed");
 			_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
@@ -5172,7 +5192,13 @@ PHP_FUNCTION(db2_execute)
 		RETURN_TRUE;
 	}
 	/* Execute Stmt -- All parameters bound */
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+	stmt_res->s_i5_conn_parent->c_i5_executing = 1;
+#endif /* PASE */
 	rc = SQLExecute((SQLHSTMT)stmt_res->hstmt);
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+	stmt_res->s_i5_conn_parent->c_i5_executing = 0;
+#endif /* PASE */
 	if ( rc == SQL_ERROR ) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Statement Execute Failed");
 		_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
@@ -5421,8 +5447,8 @@ PHP_FUNCTION(db2_next_result)
 		new_stmt_res->s_bin_mode = stmt_res->s_bin_mode;
 		new_stmt_res->cursor_type = stmt_res->cursor_type;
 		new_stmt_res->s_case_mode = stmt_res->s_case_mode;
-#ifdef PASE /* i5 override php.ini */
-		new_stmt_res->s_i5_dbcs_alloc = stmt_res->s_i5_dbcs_alloc;
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+		new_stmt_res->s_i5_conn_parent = stmt_res->s_i5_conn_parent;
 #endif /* PASE */
 		new_stmt_res->head_cache_list = NULL;
 		new_stmt_res->current_node = NULL;
@@ -5936,7 +5962,7 @@ static RETCODE _php_db2_get_length(stmt_handle* stmt_res, SQLUSMALLINT col_num, 
 	}
 #ifdef PASE /* i5/OS special DBCS */
 	if (*sLength != SQL_NULL_DATA){
-		if (stmt_res->s_i5_dbcs_alloc > 0) {
+		if (stmt_res->s_i5_conn_parent->c_i5_dbcs_alloc > 0) {
 			switch (stmt_res->column_info[col_num-1].type) {
 				case SQL_CHAR:
 				case SQL_VARCHAR:
