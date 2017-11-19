@@ -4568,7 +4568,10 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
      */
     if (IS_INTERNED(ZEND_STR(*data))) {
 #if PHP_MAJOR_VERSION >= 7
-        Z_STR_P(*data) = zend_string_init(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data), 0);
+		/* Need use macro assignment to avoid leak in php 7. (Thanks Dimitry) 
+		 * Z_STR_P(*data) = zend_string_init(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data), 0);
+		 */
+        ZVAL_STR(*data, zend_string_init(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data), 0));
 #else
         ZEND_Z_STRVAL_PP(data) = estrndup(ZEND_Z_STRVAL_PP(data), ZEND_Z_STRLEN_PP(data));
 #endif
@@ -4577,7 +4580,10 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
     /* make enough space for full write */
     if (*poriglen < curr->param_size) {
 #if PHP_MAJOR_VERSION >= 7
-        Z_STR_P(*data) = zend_string_extend(Z_STR_P(*data), curr->param_size + nullterm, 0);
+		/* Need use macro assignment in php 7 (follow pattern zend_string_init)
+		 * Z_STR_P(*data) = zend_string_extend(Z_STR_P(*data), curr->param_size + nullterm, 0);
+		 */
+		ZVAL_STR(*data, zend_string_extend(Z_STR_P(*data), curr->param_size + nullterm, 0));
 #else
         ZEND_Z_STRVAL_PP(data) = erealloc(ZEND_Z_STRVAL_PP(data), curr->param_size + nullterm);
 #endif
