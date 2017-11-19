@@ -4566,12 +4566,17 @@ static int _php_db2_bind_pad(param_node *curr, int nullterm, int isvarying, int 
 		} else {
 			memset(ZEND_Z_STRVAL_PP(data) + *poriglen, platform_pad, curr->param_size - *poriglen);
 		}
+#ifdef PASE /* i5/OS -- do not remove length-1, breaks IBM i. Also null orig len breaks IBM i. */
 		if (nullterm) {
-			/* ZEND_Z_STRVAL_PP(data)[*poriglen] = '\0'; (LUW?) */
 			ZEND_Z_STRVAL_PP(data)[curr->param_size] = '\0';
 		}
 		ZEND_Z_STRLEN_PP(data) = curr->param_size; /* yes, length-1 for bind parm max */
 		*poriglen = curr->param_size;
+#else /* LUW -- request Abhinav Radke */
+		if (nullterm) {
+			ZEND_Z_STRVAL_PP(data)[*poriglen] = '\0';
+		}
+#endif /* PASE */
 	}
 
 	/* IBM i has no CHAR0 type (return to normal) */
@@ -4848,7 +4853,13 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 			}
 			rc = SQLBindParameter(stmt_res->hstmt, curr->param_num,
 				curr->param_type, valueType, curr->data_type, curr->param_size,
-				curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+nullterm+1, &(curr->bind_indicator));
+				curr->scale, paramValuePtr,
+#ifdef PASE /* i5/OS -- handled in pad routine */
+				Z_STRLEN_P(curr->value)+nullterm,
+#else /* LUW -- request Abhinav Radke*/
+				Z_STRLEN_P(curr->value)+nullterm+1,
+#endif
+				&(curr->bind_indicator));
 			if ( rc == SQL_ERROR ) {
 				_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 			}
