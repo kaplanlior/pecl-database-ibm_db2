@@ -8,6 +8,7 @@ export LIBPATH=$PHP_HOME/lib:$PASE_TOOLS_HOME/lib:$AIX_TOOLS_HOME/lib
 export CC=gcc
 export CFLAGS="-gxcoff -DPASE -I=.:$PHP_HOME/php/include"
 export CCHOST=powerpc-ibm-aix6.1.0.0
+export LANG=C
 #phpize
 #./configure --build=$CCHOST --host=$CCHOST --target=$CCHOST
 make
