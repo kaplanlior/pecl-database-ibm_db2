@@ -4848,7 +4848,7 @@ static int _php_db2_bind_data( stmt_handle *stmt_res, param_node *curr, zval **b
 			}
 			rc = SQLBindParameter(stmt_res->hstmt, curr->param_num,
 				curr->param_type, valueType, curr->data_type, curr->param_size,
-				curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+nullterm, &(curr->bind_indicator));
+				curr->scale, paramValuePtr, Z_STRLEN_P(curr->value)+nullterm+1, &(curr->bind_indicator));
 			if ( rc == SQL_ERROR ) {
 				_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 			}

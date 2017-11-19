@@ -12,4 +12,4 @@ export CCHOST=powerpc-ibm-aix6.1.0.0
 #./configure --build=$CCHOST --host=$CCHOST --target=$CCHOST
 make
 make install
-cp /usr/local/zendphp7/lib/php/20151012/* /usr/local/zendphp7/lib/php_extensions/.
+cp /usr/local/zendphp7/lib/php/20160303/* /usr/local/zendphp7/lib/php_extensions/.
