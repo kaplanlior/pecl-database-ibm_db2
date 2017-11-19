@@ -4325,8 +4325,13 @@ PHP_FUNCTION(db2_exec)
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Options Array must have string indexes");
 			}
 		}
-
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+		stmt_res->s_i5_conn_parent->c_i5_executing = 1;
+#endif /* PASE */
 		rc = SQLExecDirect((SQLHSTMT)stmt_res->hstmt, stmt_string , stmt_string_len);
+#ifdef PASE /* 1.9.9 - IBM i customer request abandon connection stored proc in MSQW (human response needed) */
+		stmt_res->s_i5_conn_parent->c_i5_executing = 0;
+#endif /* PASE */
 		if ( rc == SQL_ERROR ) {
 			_php_db2_check_sql_errors(stmt_res->hstmt, SQL_HANDLE_STMT, rc, 1, NULL, -1, 1 TSRMLS_CC);
 		}
