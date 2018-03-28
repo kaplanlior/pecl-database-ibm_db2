@@ -67,7 +67,7 @@ if ($conn) {
     foreach($animals as $row){
        $name = $row[0];
        $picname = $row[1];
-       $picture = $chroot_dir . dirname(__FILE__) . "/$picname";
+       $picture = dirname(__FILE__) . "/$picname";
        db2_bind_param($stmt, 1, "name", DB2_PARAM_IN);
        db2_bind_param($stmt, 2, "picture", DB2_PARAM_FILE, DB2_BINARY);
        $res = db2_execute($stmt);
@@ -276,7 +276,7 @@ if ($conn) {
            $empno = $row[0];
            $photo_format = $row[1];
            $picname = $row[2];
-           $picture = $chroot_dir . dirname(__FILE__) . "/$picname";
+           $picture = dirname(__FILE__) . "/$picname";
            db2_bind_param($stmt, 1, "empno", DB2_PARAM_IN);
            db2_bind_param($stmt, 2, "photo_format", DB2_PARAM_IN);
            $res = db2_bind_param($stmt, 3, "picture", DB2_PARAM_FILE, DB2_BINARY);
@@ -499,7 +499,7 @@ if ($conn) {
            $empno = $row[0];
            $resume_format = $row[1];
            $resumename = $row[2];
-           $resume = $chroot_dir . dirname(__FILE__) . "/$resumename";
+           $resume = dirname(__FILE__) . "/$resumename";
            db2_bind_param($stmt, 1, "empno", DB2_PARAM_IN);
            db2_bind_param($stmt, 2, "resume_format", DB2_PARAM_IN);
            db2_bind_param($stmt, 3, "resume", DB2_PARAM_FILE, DB2_BINARY);
@@ -535,66 +535,6 @@ if ($conn) {
     $drop = 'DROP TABLE TEST_FOREIGN_KEYS';
     $result = @db2_exec($conn, $drop);
 
-
-    // ************************
-    // types null and null term
-    // ************************
-
-    // Drop the nullchars table, in case it exists
-    $drop = 'DROP TABLE NULLCHARS';
-    $res = @db2_exec($conn, $drop);
-
-    // Create the nullchars table
-    $create = 'CREATE TABLE NULLCHARS (EMPNO CHAR(6) NOT NULL, FIRSTNME VARCHAR(12) NOT NULL, MIDINIT CHAR(1) NOT NULL, LASTNAME CLOB(1024) NOT NULL)';
-    $res = db2_exec($conn, $create);
-
-    // Populate the nullchars table
-    $nullchars = array(
-      array('000010', 'CHRISTINE', 'I', 'HAAS'),
-      array('000120', 'SEAN',      '' , "O'CONNELL"),
-      array('0', 'PRINCE',   '', ''),
-      array('', '',   '', ''),
-      array('3', 'BOB', 'I', 'HERE')
-    );
-
-    $insert = "INSERT INTO NULLCHARS(EMPNO, FIRSTNME, MIDINIT, LASTNAME) VALUES (?, ?, ?, ?)";
-    $stmt = db2_prepare($conn, $insert);
-    if($stmt){
-        foreach ($nullchars as $row){
-           $res = db2_execute($stmt, $row);
-        }
-    }
-
-
-
-    // ************************
-    // types null and null term
-    // ************************
-
-    // Drop the nullbins table, in case it exists
-    $drop = 'DROP TABLE NULLBINS';
-    $res = @db2_exec($conn, $drop);
-
-    // Create the nullbins table
-    $create = 'CREATE TABLE NULLBINS (EMPNO BINARY(6) NOT NULL, FIRSTNME VARBINARY(12) NOT NULL, MIDINIT BINARY(1) NOT NULL, LASTNAME BLOB(1024) NOT NULL)';
-    $res = db2_exec($conn, $create);
-
-    // Populate the nullbins table
-    $nullbins = array(
-      array('000010', 'CHRISTINE', 'I', 'HAAS'),
-      array('000120', 'SEAN',      '' , "O'CONNELL"),
-      array('0', 'PRINCE',   '', ''),
-      array('', '',   '', ''),
-      array('3', 'BOB', 'I', 'HERE')
-    );
-
-    $insert = "INSERT INTO NULLBINS(EMPNO, FIRSTNME, MIDINIT, LASTNAME) VALUES (?, ?, ?, ?)";
-    $stmt = db2_prepare($conn, $insert);
-    if($stmt){
-        foreach ($nullbins as $row){
-           $res = db2_execute($stmt, $row);
-        }
-    }
 
 }
 
