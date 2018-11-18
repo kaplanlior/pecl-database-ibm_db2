@@ -397,6 +397,7 @@ ZEND_BEGIN_MODULE_GLOBALS(ibm_db2)
 	zend_long		i5_check_pconnect;	/* 1.9.7 - IBM i remote persistent connection or long lived local (customer issue dead connection) */
 	char		        *i5_servermode_subsystem; /* 1.9.7 - IBM i consultant request switch subsystem QSQSRVR job (customer workload issues) */
 	zend_long		i5_guard_profile;	/* 1.9.7 - IBM i monitor switch user profile applications (customer security issue) */
+	zend_long		i5_char_trim;		/* 2.0.3  - IBM i trim spaces character results  (customer size request issue) */
 #endif /* PASE */
 ZEND_END_MODULE_GLOBALS(ibm_db2)
 #else
